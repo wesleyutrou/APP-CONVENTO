@@ -3145,6 +3145,7 @@ function thumbVeiculoHTML(veiculo={}){
 function listarIrmaosDisponiveis(excluir=[]){const nomes=IRMAOS_DB.map(i=>i.nome).filter(Boolean);const base=nomes.length?nomes:TODOS_IRMAOS;return [...new Set(base.filter(n=>!excluir.includes(n)))];}
 const STORAGE_DISP_META = 'convento_dispensa_meta_v1';
 const STORAGE_CONTAB_META = 'convento_contab_meta_v1';
+const STORAGE_CONTAB_PENDENTES='convento_contab_comprovantes_pendentes_v1';
 const STORAGE_VEIC_META = 'convento_veiculos_meta_v1';
 const STORAGE_VEIC_NOTICES = 'convento_veiculos_avisos_v1';
 const STORAGE_VEIC_CADASTRO = 'convento_veiculos_cadastro_extra_v1';
@@ -3156,6 +3157,7 @@ let syncDispensaRemotaBloqueada = false;
 let syncVeicCadastroBloqueado = false;
 let veicUploadsPendentes = {};
 let veicCadastroExtraMem = {byId:{}};
+let contabMetaMem = {itens:{}};
 function getDispMeta(){try{return JSON.parse(localStorage.getItem(STORAGE_DISP_META)||'{}');}catch{return {historico:[],orcamentos:{'Jardim São Pedro':1500}};}}
 function setDispMeta(meta){localStorage.setItem(STORAGE_DISP_META, JSON.stringify(meta));}
 function getVeicMeta(){try{return JSON.parse(localStorage.getItem(STORAGE_VEIC_META)||'{}');}catch{return {resolvidos:{},status:{}};}}
@@ -3491,21 +3493,24 @@ function lerMetaStorage(chave='', origem='local'){
 function getContabMeta(){
   const local=lerMetaStorage(STORAGE_CONTAB_META,'local');
   const sess=lerMetaStorage(STORAGE_CONTAB_META_SESSION,'session');
-  const itens={...(local.itens||{}), ...(sess.itens||{})};
+  const itens={...(contabMetaMem.itens||{}), ...(local.itens||{}), ...(sess.itens||{})};
   return {itens};
 }
 function setContabMeta(meta){
   const payload={itens:{...((meta&&meta.itens)||{})}};
+  contabMetaMem=payload;
   const raw=JSON.stringify(payload);
   let salvoLocal=false;
+  let salvoSess=false;
   try{
     localStorage.setItem(STORAGE_CONTAB_META, raw);
     salvoLocal=true;
   }catch(_e){}
   try{
     sessionStorage.setItem(STORAGE_CONTAB_META_SESSION, raw);
+    salvoSess=true;
   }catch(_e){}
-  return salvoLocal;
+  return (salvoLocal || salvoSess);
 }
 function metaContab(id){return getContabMeta().itens?.[id]||{};}
 function salvarMetaContab(id, meta){
@@ -3518,12 +3523,17 @@ function salvarMetaContab(id, meta){
 function getContabPendentesStorage(){
   const local=lerMetaStorage(STORAGE_CONTAB_PENDENTES,'local');
   const sess=lerMetaStorage(STORAGE_CONTAB_PENDENTES_SESSION,'session');
-  return {...(local||{}), ...(sess||{})};
+  return {...(comprovantesPendentesContab||{}), ...(local||{}), ...(sess||{})};
 }
 function setContabPendentesStorage(payload={}){
-  const raw=JSON.stringify(payload||{});
-  try{localStorage.setItem(STORAGE_CONTAB_PENDENTES, raw);}catch(_e){}
-  try{sessionStorage.setItem(STORAGE_CONTAB_PENDENTES_SESSION, raw);}catch(_e){}
+  const mapa=payload||{};
+  comprovantesPendentesContab=mapa;
+  const raw=JSON.stringify(mapa);
+  let salvoLocal=false;
+  let salvoSess=false;
+  try{localStorage.setItem(STORAGE_CONTAB_PENDENTES, raw);salvoLocal=true;}catch(_e){}
+  try{sessionStorage.setItem(STORAGE_CONTAB_PENDENTES_SESSION, raw);salvoSess=true;}catch(_e){}
+  return (salvoLocal || salvoSess);
 }
 const STORAGE_MANUTENCAO='noviciado_manutencao_chamados';
 const CHAVE_MANUTENCAO='manutencao_chamados_compartilhado';
@@ -10415,16 +10425,17 @@ async function salvarComprovantesPendentesContab(id){
   try{
     const atuais=listaComprovantesMeta(metaContab(id));
     const salvoLocal=salvarListaComprovantesMeta(id,[...atuais,...pendentes]);
+    if(!salvoLocal){
+      atualizarAreaComprovantesContab(id);
+      showToast('⚠️ Não foi possível gravar os comprovantes neste aparelho. Eles continuam pendentes até você salvar de novo.');
+      return;
+    }
     const mapa=getContabPendentesStorage();
     delete mapa[id];
     comprovantesPendentesContab=mapa;
     setContabPendentesStorage(mapa);
     atualizarAreaComprovantesContab(id);
-    if(!salvoLocal){
-      showToast('✅ Comprovantes salvos nesta sessão. No mobile, use arquivos menores para manter no aparelho.');
-    }else{
-      showToast(pendentes.length>1?'✅ Comprovantes salvos!':'✅ Comprovante salvo!');
-    }
+    showToast(pendentes.length>1?'✅ Comprovantes salvos!':'✅ Comprovante salvo!');
   }catch(err){
     console.error('[salvarComprovantesPendentesContab]', err);
     showToast('⚠️ Não foi possível salvar os comprovantes agora.');
