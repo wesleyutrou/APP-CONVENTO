@@ -3480,7 +3480,6 @@ function obterUltimaCompraDispensa(nome=''){
     .sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0))[0]||null;
 }
 const STORAGE_CONTAB_META_SESSION='convento_contab_meta_session_v1';
-const STORAGE_CONTAB_PENDENTES='convento_contab_comprovantes_pendentes_v1';
 const STORAGE_CONTAB_PENDENTES_SESSION='convento_contab_comprovantes_pendentes_session_v1';
 function lerMetaStorage(chave='', origem='local'){
   try{
@@ -3493,12 +3492,13 @@ function lerMetaStorage(chave='', origem='local'){
 function getContabMeta(){
   const local=lerMetaStorage(STORAGE_CONTAB_META,'local');
   const sess=lerMetaStorage(STORAGE_CONTAB_META_SESSION,'session');
-  const itens={...(contabMetaMem.itens||{}), ...(local.itens||{}), ...(sess.itens||{})};
+  const itens={...(local.itens||{}), ...(sess.itens||{}), ...(contabMetaMem.itens||{})};
   return {itens};
 }
 function setContabMeta(meta){
   const payload={itens:{...((meta&&meta.itens)||{})}};
   contabMetaMem=payload;
+  try{ globalThis.contabMetaMem=payload; }catch(_e){}
   const raw=JSON.stringify(payload);
   let salvoLocal=false;
   let salvoSess=false;
@@ -3510,7 +3510,7 @@ function setContabMeta(meta){
     sessionStorage.setItem(STORAGE_CONTAB_META_SESSION, raw);
     salvoSess=true;
   }catch(_e){}
-  return (salvoLocal || salvoSess);
+  return true;
 }
 function metaContab(id){return getContabMeta().itens?.[id]||{};}
 function salvarMetaContab(id, meta){
@@ -3523,11 +3523,13 @@ function salvarMetaContab(id, meta){
 function getContabPendentesStorage(){
   const local=lerMetaStorage(STORAGE_CONTAB_PENDENTES,'local');
   const sess=lerMetaStorage(STORAGE_CONTAB_PENDENTES_SESSION,'session');
-  return {...(comprovantesPendentesContab||{}), ...(local||{}), ...(sess||{})};
+  const mem=((globalThis&&globalThis.comprovantesPendentesContab)?globalThis.comprovantesPendentesContab:{});
+  return {...(local||{}), ...(sess||{}), ...mem};
 }
 function setContabPendentesStorage(payload={}){
   const mapa=payload||{};
   comprovantesPendentesContab=mapa;
+  try{ globalThis.comprovantesPendentesContab=mapa; }catch(_e){}
   const raw=JSON.stringify(mapa);
   let salvoLocal=false;
   let salvoSess=false;
@@ -3744,7 +3746,9 @@ let aiHistory = [];
 let escalaObs = '', irmaosPresentes = [];
 let maqPendentId = null;
 let discrimItens = [];
-let comprovantesPendentesContab=getContabPendentesStorage();
+let comprovantesPendentesContab={};
+try{ globalThis.comprovantesPendentesContab=comprovantesPendentesContab; }catch(_e){}
+comprovantesPendentesContab=getContabPendentesStorage();
 
 // Utils
 const fmt = n => 'R$ '+parseFloat(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -5179,6 +5183,7 @@ const carregarRevisaoLegacyIntermediaria = async function(){
       <input class="fi" id="rev-obs-${e.id}" value="${(e.obs||'').replace(/"/g,'&quot;')}">
       <label class="fl">Comprovantes</label>
       <input class="fi" type="file" accept="image/*,application/pdf" multiple onchange="prepararComprovanteContab('${e.id}',this)">
+      <div id="rev-comprovantes-info-${e.id}">${renderResumoComprovantesPendentesContab(e.id)}</div>
       ${comprovanteBadge}
       <div id="rev-comprovantes-${e.id}">${renderComprovantesContabInline(e.id)}</div>
       ${meta.comprovante_status==='sem_comprovante' ? `<div style="font-size:.72rem;color:#E65100;margin-top:4px">Motivo: ${meta.comprovante_motivo||'—'}</div>` : ''}
@@ -10391,11 +10396,14 @@ function listaComprovantesPendentesContab(id){
 function atualizarAreaComprovantesContab(id){
   const wrap=document.getElementById(`rev-comprovantes-${id}`);
   if(wrap)wrap.innerHTML=renderComprovantesContabInline(id);
+  const info=document.getElementById(`rev-comprovantes-info-${id}`);
+  if(info)info.innerHTML=renderResumoComprovantesPendentesContab(id);
 }
 
 async function prepararComprovanteContab(id,input){
   const files=[...(input?.files||[])];
   if(!files.length)return;
+  if(typeof marcarInteracaoContab==='function')marcarInteracaoContab(60000);
   try{
     const novos=[];
     for(const file of files){
@@ -10407,6 +10415,7 @@ async function prepararComprovanteContab(id,input){
     comprovantesPendentesContab=atuais;
     setContabPendentesStorage(atuais);
     atualizarAreaComprovantesContab(id);
+    setTimeout(()=>atualizarAreaComprovantesContab(id),50);
     showToast(novos.length>1?'📎 Arquivos selecionados. Eles ficam pendentes até você tocar em salvar comprovantes.':'📎 Arquivo selecionado. Ele fica pendente até você tocar em salvar comprovantes.');
   }catch(err){
     console.error('[prepararComprovanteContab]', err);
@@ -10416,11 +10425,12 @@ async function prepararComprovanteContab(id,input){
   }
 }
 
-async function salvarComprovantesPendentesContab(id){
+async function salvarComprovantesPendentesContab(id, opts={}){
+  const {reload=true}=opts||{};
   const pendentes=listaComprovantesPendentesContab(id);
   if(!pendentes.length){
     showToast('ℹ️ Nenhum arquivo novo para salvar.');
-    return;
+    return true;
   }
   try{
     const atuais=listaComprovantesMeta(metaContab(id));
@@ -10428,7 +10438,7 @@ async function salvarComprovantesPendentesContab(id){
     if(!salvoLocal){
       atualizarAreaComprovantesContab(id);
       showToast('⚠️ Não foi possível gravar os comprovantes neste aparelho. Eles continuam pendentes até você salvar de novo.');
-      return;
+      return false;
     }
     const mapa=getContabPendentesStorage();
     delete mapa[id];
@@ -10436,12 +10446,14 @@ async function salvarComprovantesPendentesContab(id){
     setContabPendentesStorage(mapa);
     atualizarAreaComprovantesContab(id);
     showToast(pendentes.length>1?'✅ Comprovantes salvos!':'✅ Comprovante salvo!');
+    return true;
   }catch(err){
     console.error('[salvarComprovantesPendentesContab]', err);
     showToast('⚠️ Não foi possível salvar os comprovantes agora.');
+    return false;
   }finally{
-    if(typeof carregarRevisao==='function')carregarRevisao();
-    if(typeof carregarDinheiroVivo==='function')carregarDinheiroVivo();
+    if(reload && typeof carregarRevisao==='function')carregarRevisao();
+    if(reload && typeof carregarDinheiroVivo==='function')carregarDinheiroVivo();
   }
 }
 
@@ -10503,6 +10515,13 @@ function renderComprovantesContabInline(id){
     </span>`).join('')}
     </div>
     ${pendentes.length?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button type="button" class="btn-sm bsv" onclick="salvarComprovantesPendentesContab('${id}')">💾 Salvar comprovantes (${pendentes.length})</button></div>`:''}`;
+}
+
+function renderResumoComprovantesPendentesContab(id){
+  const pendentes=listaComprovantesPendentesContab(id);
+  if(!pendentes.length)return '';
+  const nomes=pendentes.map((item,idx)=>escapeHtml(item.nome||`Arquivo ${idx+1}`));
+  return `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${nomes.map(nome=>`<span style="display:inline-flex;align-items:center;gap:6px;background:#fff7e6;border:1px solid #f1d48a;border-radius:999px;padding:4px 8px;font-size:.72rem;color:#8a6500">📎 ${nome}</span>`).join('')}</div>`;
 }
 
 function dataUrlFromFile(file){
@@ -11124,6 +11143,7 @@ async function carregarRevisaoBaseIntermediaria(){
       <input class="fi" id="rev-obs-${e.id}" value="${(e.obs||'').replace(/"/g,'&quot;')}">
       <label class="fl">Comprovantes</label>
       <input class="fi" type="file" accept="image/*,application/pdf" multiple onchange="prepararComprovanteContab('${e.id}',this)">
+      <div id="rev-comprovantes-info-${e.id}">${renderResumoComprovantesPendentesContab(e.id)}</div>
       ${comprovanteBadge}
       <div id="rev-comprovantes-${e.id}">${renderComprovantesContabInline(e.id)}</div>
       ${meta.comprovante_status==='sem_comprovante' ? `<div style="font-size:.72rem;color:#E65100;margin-top:4px">Motivo: ${meta.comprovante_motivo||'—'}</div>` : ''}
@@ -11143,6 +11163,14 @@ async function carregarRevisaoBaseIntermediaria(){
 
 async function confirmarLancamento(id, opts={}){
   const {silent=false,reload=true}=opts;
+  const haviaPendentes=listaComprovantesPendentesContab(id).length>0;
+  if(haviaPendentes){
+    const okSalvarPendentes=await salvarComprovantesPendentesContab(id,{reload:false});
+    if(!okSalvarPendentes){
+      if(!silent)showToast('⚠️ Salve primeiro os comprovantes pendentes antes de confirmar este lançamento.');
+      return;
+    }
+  }
   const tipo=document.getElementById('rev-tipo-'+id).value;
   const cat=categoriaContabCanon(document.getElementById('rev-cat-'+id).value);
   const valor=parseFloat(document.getElementById('rev-valor-'+id).value)||0;
@@ -11157,7 +11185,8 @@ async function confirmarLancamento(id, opts={}){
   if(comprovanteStatusAtual==='anexado' || comprovanteStatusAtual==='sem_comprovante'){
     comprovanteStatus=comprovanteStatusAtual;
   }else if(despesaPrecisaComprovante(tipo, cat)){
-    const anexou=!!anterior.comprovante;
+    const metaAtual=metaContab(id);
+    const anexou=listaComprovantesMeta(metaAtual).length>0 || !!metaAtual.comprovante;
     if(!anexou){
       const marcarSemComprovante=confirm(
         'Você não anexou nenhum comprovante para esta despesa.\n\nOK = Não possuo comprovante\nCancelar = Pretendo anexar depois'
@@ -13859,6 +13888,7 @@ carregarRevisao = async function(){
           <input class="fi" id="rev-obs-${e.id}" value="${(e.obs||'').replace(/"/g,'&quot;')}">
           <label class="fl">Comprovantes</label>
           <input class="fi" type="file" accept="image/*,application/pdf" multiple onchange="prepararComprovanteContab('${e.id}',this)">
+          <div id="rev-comprovantes-info-${e.id}">${renderResumoComprovantesPendentesContab(e.id)}</div>
           ${comprovanteBadge}
           <div id="rev-comprovantes-${e.id}">${renderComprovantesContabInline(e.id)}</div>
           ${meta.comprovante_status==='sem_comprovante' ? `<div style="font-size:.72rem;color:#E65100;margin-top:4px">Motivo: ${meta.comprovante_motivo||'—'}</div>` : ''}
