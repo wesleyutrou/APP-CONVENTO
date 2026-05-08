@@ -781,6 +781,39 @@ header p{font-size:.62rem;color:rgba(201,151,58,.65);margin-top:1px;}
 .tabs::-webkit-scrollbar{display:none;}
 .tab-btn{flex:1;min-width:52px;padding:9px 4px;background:none;border:none;color:rgba(201,151,58,.5);font-family:'Source Sans 3',sans-serif;font-size:.62rem;font-weight:600;cursor:pointer;text-transform:uppercase;letter-spacing:.03em;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s;white-space:nowrap;}
 .tab-btn.active{color:var(--ouro);border-bottom-color:var(--ouro);}
+#screen-veiculos .tabs{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:6px;
+  padding:8px;
+  overflow:visible;
+}
+#screen-veiculos .tabs .tab-btn{
+  min-width:0;
+  margin-bottom:0;
+  border-bottom:none;
+  border-radius:12px;
+  padding:10px 6px;
+  white-space:normal;
+  line-height:1.15;
+  font-size:.68rem;
+  letter-spacing:0;
+  background:rgba(255,255,255,.04);
+}
+#screen-veiculos .tabs .tab-btn.active{
+  color:#fff3d6;
+  background:rgba(201,151,58,.16);
+  box-shadow:inset 0 0 0 1px rgba(201,151,58,.28);
+}
+@media (max-width:560px){
+  #screen-veiculos .tabs{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  #screen-veiculos .tabs .tab-btn{
+    font-size:.64rem;
+    padding:9px 5px;
+  }
+}
 #screen-contab .tabs .tab-btn.bank-tab{border-radius:14px 14px 0 0;margin:0 2px -2px;padding-left:8px;padding-right:8px;}
 #screen-contab .tabs .tab-btn.bank-tab.active{color:#fff;border-bottom-color:transparent;}
 #screen-contab .tabs .tab-btn.bank-itau.active{
@@ -2146,7 +2179,7 @@ mark{background:#fff59d;border-radius:2px;}
 
 <!-- ══════ OFÍCIOS ══════ -->
 <div id="screen-oficios" class="screen">
-  <div class="tabs">
+  <div class="tabs" style="display:flex;flex-wrap:wrap;gap:6px">
     <button class="tab-btn active" onclick="stab('oficios','escala',this)">📋 Escala</button>
     <button class="tab-btn" onclick="stab('oficios','atividades',this);carregarAtividades()">⚒️ Ofícios</button>
     <button class="tab-btn frei-only" onclick="stab('oficios','gestao',this);carregarGestaoOficio()">🔧 Gerir</button>
@@ -2294,18 +2327,48 @@ mark{background:#fff59d;border-radius:2px;}
     <button class="tab-btn active" onclick="stab('veiculos','painel',this);renderVeiculos()">🚗 Painel</button>
     <button class="tab-btn" onclick="stab('veiculos','hist',this);carregarVeicHist()">📋 Histórico</button>
     <button class="tab-btn" onclick="stab('veiculos','obs',this);carregarVeicObs()">⚠️ Obs.</button>
+    <button id="tab-veiculos-manutencao" class="tab-btn" style="display:none" onclick="stab('veiculos','manutencao',this);carregarVeicManutencao()">🛠️ Manutenção</button>
+    <button class="tab-btn" onclick="stab('veiculos','abastecimento',this);carregarVeicAbastecimento()">⛽ Abastecimento</button>
     <button id="tab-veiculos-cadastro" class="tab-btn" style="display:none" onclick="stab('veiculos','cadastro',this);renderVeiculosCadastro()">🗂️ Cadastro</button>
   </div>
   <div id="sub-veiculos-painel" class="screen active" style="padding:12px 0 0">
     <p style="font-size:.79rem;color:var(--cinza);margin-bottom:12px">Selecione seu nome e veículo, depois toque em <strong>Saindo agora</strong> ou <strong>Cheguei</strong>.</p>
+    <div class="card" style="margin-bottom:12px">
+      <label class="fl first">Veículo</label>
+      <select id="veic-painel-filtro" class="fi" onchange="setFiltroPainelVeiculos(this.value)">
+        <option value="">Todos os veículos</option>
+      </select>
+    </div>
     <div id="veh-cards"></div>
   </div>
   <div id="sub-veiculos-hist" class="screen" style="padding:12px 0 0">
-    <div class="search-wrap"><span class="si">🔍</span><input type="text" placeholder="Filtrar por nome ou veículo..." oninput="filtrarVeicHist(this.value)"></div>
+    <div id="veic-hist-form"></div>
+    <div class="frow" style="margin-bottom:10px">
+      <div class="search-wrap" style="margin-bottom:0"><span class="si">🔍</span><input id="veic-hist-busca" type="text" placeholder="Filtrar por nome ou veículo..." oninput="filtrarVeicHist()"></div>
+      <div><input id="veic-hist-data" class="fi" type="date" oninput="filtrarVeicHist()"></div>
+    </div>
     <div id="veic-hist-lista"><div class="empty">Carregando...</div></div>
   </div>
   <div id="sub-veiculos-obs" class="screen" style="padding:12px 0 0">
     <div id="veic-obs-lista"><div class="empty">Carregando...</div></div>
+  </div>
+  <div id="sub-veiculos-manutencao" class="screen" style="padding:12px 0 0">
+    <div class="card" style="margin-bottom:12px">
+      <label class="fl first">Selecionar veículo</label>
+      <select id="veic-manut-filtro" class="fi" onchange="setFiltroManutVeiculos(this.value)">
+        <option value="">Selecione o veículo...</option>
+      </select>
+    </div>
+    <div id="veic-manutencao-lista"><div class="empty">Carregando...</div></div>
+  </div>
+  <div id="sub-veiculos-abastecimento" class="screen" style="padding:12px 0 0">
+    <div class="card" style="margin-bottom:12px">
+      <label class="fl first">Selecionar veículo</label>
+      <select id="veic-abast-filtro" class="fi" onchange="setFiltroAbastVeiculos(this.value)">
+        <option value="">Selecione o veículo...</option>
+      </select>
+    </div>
+    <div id="veic-abastecimento-lista"><div class="empty">Carregando...</div></div>
   </div>
   <div id="sub-veiculos-cadastro" class="screen" style="padding:12px 0 0">
     <div class="card">
@@ -3121,6 +3184,9 @@ let TODOS_IRMAOS = ['Frei Fernando','Frei Gustavo','Frei Wesley',...NOVICOS];
 let mkFilter = 'todos', mkChecked = {};
 let consumoState = {}, reposicoes = [];
 let vehEmUso = {}, todosViagens = [];
+let veicPainelFiltroId = '';
+let veicManutFiltroId = '';
+let veicAbastFiltroId = '';
 let reposIdAtual = null;
 const STORAGE_ATIV_META = 'convento_ativ_meta_v1';
 function getAtividadesMeta(){try{return JSON.parse(localStorage.getItem(STORAGE_ATIV_META)||'{}');}catch{return {};}}
@@ -3297,6 +3363,8 @@ function atualizarAbaCadastroVeiculosVisibilidade(){
   const tab=document.getElementById('tab-veiculos-cadastro');
   if(!tab)return;
   tab.style.display=podeGerirCadastroVeiculos()?'':'none';
+  const tabMan=document.getElementById('tab-veiculos-manutencao');
+  if(tabMan)tabMan.style.display=podeGerirCadastroVeiculos()?'':'none';
 }
 function limparAvisosVeiculosExpirados(){
   const agora=Date.now();
@@ -4080,6 +4148,9 @@ async function refrescarTelaAtivaSilencioso(force=false){
       if(typeof renderVeiculos==='function')renderVeiculos();
       if(document.getElementById('sub-veiculos-hist')?.classList.contains('active') && typeof carregarVeicHist==='function')await carregarVeicHist();
       if(document.getElementById('sub-veiculos-obs')?.classList.contains('active') && typeof carregarVeicObs==='function')await carregarVeicObs();
+      if(document.getElementById('sub-veiculos-manutencao')?.classList.contains('active') && typeof carregarVeicManutencao==='function')await carregarVeicManutencao();
+      if(document.getElementById('sub-veiculos-abastecimento')?.classList.contains('active') && typeof carregarVeicAbastecimento==='function')await carregarVeicAbastecimento();
+      if(document.getElementById('sub-veiculos-cadastro')?.classList.contains('active') && typeof renderVeiculosCadastro==='function')await renderVeiculosCadastro();
       return;
     }
     if(tela==='dispensa'){
@@ -4599,6 +4670,39 @@ function imagemVeiculo(nome){
   if(n.includes('van'))return './Imagens%20Carros/Van.png';
   return '';
 }
+function preencherFiltroVeiculosPainel(){
+  const sel=document.getElementById('veic-painel-filtro');
+  if(!sel)return;
+  const atual=veicPainelFiltroId||'';
+  sel.innerHTML='<option value="">Todos os veículos</option>'+(VEICULOS_DATA||[]).map(v=>`<option value="${v.id}">${escapeHtml(corrigirNomeVeiculo(v.nome||'Veículo'))}</option>`).join('');
+  sel.value=atual;
+}
+function preencherFiltroVeiculosManutencao(){
+  const sel=document.getElementById('veic-manut-filtro');
+  if(!sel)return;
+  const atual=veicManutFiltroId||'';
+  sel.innerHTML='<option value="">Selecione o veículo...</option>'+(VEICULOS_DATA||[]).map(v=>`<option value="${v.id}">${escapeHtml(corrigirNomeVeiculo(v.nome||'Veículo'))}</option>`).join('');
+  sel.value=atual;
+}
+function preencherFiltroVeiculosAbastecimento(){
+  const sel=document.getElementById('veic-abast-filtro');
+  if(!sel)return;
+  const atual=veicAbastFiltroId||'';
+  sel.innerHTML='<option value="">Selecione o veículo...</option>'+(VEICULOS_DATA||[]).map(v=>`<option value="${v.id}">${escapeHtml(corrigirNomeVeiculo(v.nome||'Veículo'))}</option>`).join('');
+  sel.value=atual;
+}
+function setFiltroPainelVeiculos(id=''){
+  veicPainelFiltroId=id||'';
+  renderVeiculos();
+}
+function setFiltroManutVeiculos(id=''){
+  veicManutFiltroId=id||'';
+  carregarVeicManutencao();
+}
+function setFiltroAbastVeiculos(id=''){
+  veicAbastFiltroId=id||'';
+  carregarVeicAbastecimento();
+}
 
 function toggleVehCard(id){
   const card=document.getElementById('vfc-'+id);
@@ -4612,8 +4716,14 @@ function renderVeiculos(){
   const c=document.getElementById('veh-cards');if(!c)return;
   c.innerHTML='';
   c.classList.add('veh-galeria');
+  preencherFiltroVeiculosPainel();
   const motoristas=IRMAOS_DB.filter(i=>i.van!==undefined||i.tipo==='novico'||i.tipo==='frei');
-  VEICULOS_DATA.forEach(v=>{
+  const listaPainel=(VEICULOS_DATA||[]).filter(v=>!veicPainelFiltroId || v.id===veicPainelFiltroId);
+  if(!listaPainel.length){
+    c.innerHTML='<div class="empty">Nenhum veículo encontrado para este filtro.</div>';
+    return;
+  }
+  listaPainel.forEach(v=>{
     const uso=vehEmUso[v.id];
     const status=(typeof statusVeiculoMeta==='function')?statusVeiculoMeta(v.id):{tipo:'disponivel',detalhe:''};
     const nomeC=corrigirNomeVeiculo(v.nome||'Veículo');
@@ -4732,12 +4842,132 @@ async function registrarChegada(vehId){
 }
 async function carregarVeicHist(){
   const c=document.getElementById('veic-hist-lista');if(!c)return;
+  const {data:veics}=await sb.from('veiculos').select('*').order('nome');
+  VEICULOS_DATA=(veics||[]).map(v=>({...v,nome:corrigirNomeVeiculo(v.nome)}));
   const {data}=await sb.from('viagens').select('*').order('created_at',{ascending:false}).limit(60);
-  todosViagens=data||[];renderVeicHistLista(todosViagens);
+  todosViagens=data||[];
+  renderVeicHistForm(veicHistEditandoId?(todosViagens||[]).find(v=>v.id===veicHistEditandoId)||null:null);
+  renderVeicHistLista(todosViagens);
 }
 function podeGerirHistoricoMotoristas(){
   const chave=(typeof chaveLoginCanonica==='function'?chaveLoginCanonica(perfilAtual?.nome||''):(perfilAtual?.nome||'').toLowerCase().trim());
   return perfilAtual?.tipo==='admin' || chave==='irmaokelven' || chave==='irmao kelven';
+}
+let veicHistEditandoId='';
+function motoristasPermitidosVeiculo(veicId=''){
+  const v=(VEICULOS_DATA||[]).find(item=>item.id===veicId)||{};
+  return IRMAOS_DB.filter(i=>v.van?i.van:true).filter(i=>i.van!==undefined||i.tipo==='novico'||i.tipo==='frei');
+}
+function getViagemEdicaoAtual(){
+  return {
+    id:veicHistEditandoId||'',
+    veiculo_id:document.getElementById('veic-hm-veiculo')?.value||'',
+    motorista:document.getElementById('veic-hm-motorista')?.value||'',
+    data:document.getElementById('veic-hm-data')?.value||hojeISO(),
+    destino:document.getElementById('veic-hm-destino')?.value||'',
+    saida:document.getElementById('veic-hm-saida')?.value||'',
+    chegada:document.getElementById('veic-hm-chegada')?.value||'',
+    combustivel:document.getElementById('veic-hm-comb')?.value||'',
+    obs:document.getElementById('veic-hm-obs')?.value||''
+  };
+}
+function renderVeicHistForm(item=null){
+  const c=document.getElementById('veic-hist-form');
+  if(!c)return;
+  const edit=item||null;
+  const veicId=edit?.veiculo_id||document.getElementById('veic-hm-veiculo')?.value||VEICULOS_DATA?.[0]?.id||'';
+  const motoristas=motoristasPermitidosVeiculo(veicId);
+  const veicOpts=(VEICULOS_DATA||[]).map(v=>`<option value="${v.id}" ${v.id===veicId?'selected':''}>${escapeHtml(corrigirNomeVeiculo(v.nome||'Veículo'))}</option>`).join('');
+  const motOpts=(motoristas||[]).map(i=>`<option ${i.nome===String(edit?.motorista||'')?'selected':''}>${escapeHtml(i.nome)}</option>`).join('');
+  c.innerHTML=`<div class="card" style="margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+      <h3>${edit?'✏️ Editar saída/chegada':'➕ Registrar saída ou chegada manualmente'}</h3>
+      <div style="font-size:.76rem;color:var(--cinza)">Use quando o irmão esquecer de abrir ou fechar a viagem.</div>
+    </div>
+    <div class="frow">
+      <div><label class="fl first">Veículo</label><select id="veic-hm-veiculo" class="fi" onchange="renderVeicHistForm({...getViagemEdicaoAtual(),veiculo_id:this.value})"><option value="">Selecione...</option>${veicOpts}</select></div>
+      <div><label class="fl first">Motorista</label><select id="veic-hm-motorista" class="fi"><option value="">Selecione...</option>${motOpts}</select></div>
+    </div>
+    <div class="frow">
+      <div><label class="fl">Data</label><input id="veic-hm-data" class="fi" type="date" value="${veicDate(edit?.data)||hojeISO()}"></div>
+      <div><label class="fl">Destino</label><input id="veic-hm-destino" class="fi" value="${escapeHtml(edit?.destino||'')}"></div>
+    </div>
+    <div class="frow">
+      <div><label class="fl">Saída</label><input id="veic-hm-saida" class="fi" type="time" value="${edit?.saida||''}"></div>
+      <div><label class="fl">Chegada</label><input id="veic-hm-chegada" class="fi" type="time" value="${edit?.chegada||''}"></div>
+    </div>
+    <div class="frow">
+      <div><label class="fl">Combustível ao chegar</label><select id="veic-hm-comb" class="fi"><option value="">Não informar</option>${FUEL_OPTS.map(o=>`<option value="${o.val}" ${String(edit?.combustivel||'')===String(o.val)?'selected':''}>${o.label}</option>`).join('')}</select></div>
+      <div><label class="fl">Status</label><select id="veic-hm-status" class="fi"><option value="aberto" ${!edit?.chegada?'selected':''}>Em aberto</option><option value="fechado" ${edit?.chegada?'selected':''}>Fechado</option></select></div>
+    </div>
+    <label class="fl">Observações</label>
+    <textarea id="veic-hm-obs" class="fi" rows="2" style="resize:none">${escapeHtml(edit?.obs||'')}</textarea>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+      <button type="button" class="btn btn-ouro" onclick="salvarViagemManualVeiculo()">${edit?'💾 Salvar edição':'✅ Registrar manualmente'}</button>
+      ${edit?`<button type="button" class="btn btn-cinza" onclick="cancelarEdicaoViagemVeiculo()">Cancelar edição</button>`:''}
+    </div>
+  </div>`;
+  const motSel=document.getElementById('veic-hm-motorista');
+  if(motSel)motSel.value=edit?.motorista||'';
+}
+function cancelarEdicaoViagemVeiculo(){
+  veicHistEditandoId='';
+  renderVeicHistForm();
+}
+async function salvarViagemManualVeiculo(){
+  const form=getViagemEdicaoAtual();
+  const status=document.getElementById('veic-hm-status')?.value||'aberto';
+  const veic=(VEICULOS_DATA||[]).find(v=>v.id===form.veiculo_id);
+  if(!veic||!form.motorista||!form.data||!form.saida){
+    showToast('⚠️ Informe veículo, motorista, data e horário de saída.');
+    return;
+  }
+  const payload={
+    veiculo_id:form.veiculo_id,
+    veiculo_nome:corrigirNomeVeiculo(veic.nome||'Veículo'),
+    motorista:form.motorista,
+    destino:form.destino||'',
+    saida:form.saida,
+    chegada:status==='fechado'?(form.chegada||null):null,
+    data:form.data,
+    obs:(form.obs||'').trim(),
+    combustivel:form.combustivel||null,
+    aberto:status!=='fechado'
+  };
+  if(status==='fechado' && !payload.chegada){
+    showToast('⚠️ Informe o horário de chegada para fechar a viagem.');
+    return;
+  }
+  showLoad(true);
+  try{
+    const {data:salva}=veicHistEditandoId
+      ? await sb.from('viagens').update(payload).eq('id',veicHistEditandoId).select().single()
+      : await sb.from('viagens').insert(payload).select().single();
+    const dbId=salva?.id||veicHistEditandoId||'';
+    if(payload.aberto){
+      vehEmUso[form.veiculo_id]={motorista:form.motorista,saida:form.saida,data:fmtData(form.data),destino:form.destino||'',obs:payload.obs,db_id:dbId};
+    }else{
+      const usoAtual=vehEmUso[form.veiculo_id];
+      if(usoAtual?.db_id===dbId || !veicHistEditandoId || !payload.aberto)delete vehEmUso[form.veiculo_id];
+      if(form.combustivel){
+        await sb.from('veiculos').update({combustivel:parseInt(form.combustivel)||0}).eq('id',form.veiculo_id);
+        const vv=VEICULOS_DATA.find(x=>x.id===form.veiculo_id);if(vv)vv.combustivel=parseInt(form.combustivel)||0;
+      }
+    }
+    veicHistEditandoId='';
+    await carregarVeicHist();
+    await renderVeiculos();
+    showToast('✅ Viagem salva com sucesso.');
+  }finally{
+    showLoad(false);
+  }
+}
+function editarViagemVeiculo(id=''){
+  const item=(todosViagens||[]).find(v=>v.id===id);
+  if(!item)return;
+  veicHistEditandoId=id;
+  renderVeicHistForm(item);
+  document.getElementById('veic-hist-form')?.scrollIntoView({behavior:'smooth',block:'start'});
 }
 function renderVeicHistLista(lista){
   const c=document.getElementById('veic-hist-lista');if(!c)return;
@@ -4765,9 +4995,21 @@ function renderVeicHistLista(lista){
       </div>
       ${v.destino?`<div style="margin-top:4px;font-size:.73rem;color:var(--azul)">📍 ${v.destino}</div>`:''}
       ${v.obs?`<div class="hv-obs">"${v.obs}"</div>`:''}
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+        <button type="button" class="btn-sm bsc" style="font-weight:800" onclick="editarViagemVeiculo('${v.id}')">✏️ Editar este registro</button>
+      </div>
     </div>`).join(''):'<div class="empty">Nenhuma viagem.</div>');
 }
-function filtrarVeicHist(t){const nt=norm(t);renderVeicHistLista(todosViagens.filter(v=>!nt||(norm(v.motorista||'').includes(nt)||norm(v.veiculo_nome||'').includes(nt))));}
+function filtrarVeicHist(){
+  const t=document.getElementById('veic-hist-busca')?.value||'';
+  const dataRef=document.getElementById('veic-hist-data')?.value||'';
+  const nt=norm(t);
+  renderVeicHistLista((todosViagens||[]).filter(v=>{
+    const okBusca=!nt || (norm(v.motorista||'').includes(nt)||norm(v.veiculo_nome||'').includes(nt)||norm(v.destino||'').includes(nt));
+    const okData=!dataRef || String(v.data||'')===dataRef;
+    return okBusca && okData;
+  }));
+}
 async function limparHistoricoMotoristasVeiculos(){
   if(!podeGerirHistoricoMotoristas()){showToast('Somente Kelvin e os freis podem excluir esse histórico.');return;}
   await limparHistoricoMotoristasCfg();
@@ -4780,6 +5022,183 @@ async function carregarVeicObs(){
   const c=document.getElementById('veic-obs-lista');if(!c)return;
   const {data}=await sb.from('viagens').select('*').not('obs','is',null).neq('obs','').order('created_at',{ascending:false}).limit(20);
   c.innerHTML=data?.length?data.map(v=>`<div class="obs-alert">🚗 <strong>${v.veiculo_nome}</strong> — ${v.motorista} (${v.data})<br>"${v.obs}"</div>`).join(''):'<div class="empty">Nenhuma observação.</div>';
+}
+function getVeicManutHist(id=''){
+  const extra=getVeicExtra(id);
+  return Array.isArray(extra.manut_historico)?extra.manut_historico:[];
+}
+function getVeicAbastHist(id=''){
+  const extra=getVeicExtra(id);
+  return Array.isArray(extra.abast_historico)?extra.abast_historico:[];
+}
+async function registrarHistoricoVeicExtra(id='', tipo='manutencao'){
+  const extraMeta=await sincronizarVeicCadastroExtra();
+  extraMeta.byId=extraMeta.byId||{};
+  const atual={...(extraMeta.byId[id]||{})};
+  const data=veicDate(document.getElementById(`veic-${tipo}-data-${id}`)?.value||hojeISO());
+  const km=veicNum(document.getElementById(`veic-${tipo}-km-${id}`)?.value,0);
+  const obs=(document.getElementById(`veic-${tipo}-obs-${id}`)?.value||'').trim();
+  if(tipo==='manutencao'){
+    const titulo=(document.getElementById(`veic-manutencao-titulo-${id}`)?.value||'').trim();
+    if(!titulo){showToast('Informe o serviço de manutenção realizado.');return;}
+    const lista=getVeicManutHist(id);
+    lista.unshift({id:'man-'+Date.now(),data,km,titulo,obs});
+    atual.manut_historico=lista.slice(0,30);
+    if(km>0){atual.km_atual=km;atual.km_atualizado_em=data;}
+  }else{
+    const litros=parseFloat((document.getElementById(`veic-abastecimento-litros-${id}`)?.value||'0').replace(',','.'))||0;
+    const valor=parseFloat((document.getElementById(`veic-abastecimento-valor-${id}`)?.value||'0').replace(',','.'))||0;
+    const combustivel=(document.getElementById(`veic-abastecimento-comb-${id}`)?.value||'').trim();
+    if(!litros && !valor){showToast('Informe os dados do abastecimento.');return;}
+    const lista=getVeicAbastHist(id);
+    lista.unshift({id:'aba-'+Date.now(),data,km,litros,valor,combustivel,obs});
+    atual.abast_historico=lista.slice(0,40);
+    if(km>0){atual.km_atual=km;atual.km_atualizado_em=data;}
+    if(combustivel)atual.tipo_combustivel=combustivel;
+  }
+  extraMeta.byId[id]=atual;
+  await salvarVeicCadastroExtra(extraMeta);
+  await carregarVeicManutencao();
+  await renderVeiculosCadastro();
+  showToast(tipo==='manutencao'?'✅ Manutenção registrada.':'✅ Abastecimento registrado.');
+}
+function renderLinhaHistVeicReg(html=''){
+  return `<div style="background:#fff;border:1px solid #eadfca;border-radius:12px;padding:10px 12px;font-size:.75rem;line-height:1.45">${html}</div>`;
+}
+async function carregarVeicManutencao(){
+  const c=document.getElementById('veic-manutencao-lista');if(!c)return;
+  if(!podeGerirCadastroVeiculos()){c.innerHTML='<div class="empty">Manutenção disponível apenas para o Irmão Kelven e os Freis.</div>';return;}
+  await sincronizarVeicCadastroExtra();
+  const {data}=await sb.from('veiculos').select('*').order('nome');
+  VEICULOS_DATA=(data||[]).map(v=>({...v,nome:corrigirNomeVeiculo(v.nome)}));
+  preencherFiltroVeiculosManutencao();
+  if(!veicManutFiltroId){
+    c.innerHTML='<div class="empty">Selecione um veículo para abrir a ficha de manutenção.</div>';
+    return;
+  }
+  const lista=(VEICULOS_DATA||[]).filter(v=>v.id===veicManutFiltroId);
+  if(!lista.length){
+    c.innerHTML='<div class="empty">Selecione um veículo para abrir a ficha de manutenção.</div>';
+    return;
+  }
+  c.innerHTML=lista.map(v=>{
+    const extra=getVeicExtra(v.id);
+    const manut=getVeicManutHist(v.id);
+    const oleo=getVeicOleoStatus(v.id);
+    return `<div class="card" style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+        <div><h3 style="margin:0">🚗 ${escapeHtml(corrigirNomeVeiculo(v.nome||'Veículo'))}</h3><div style="font-size:.75rem;color:var(--cinza)">Placa: ${escapeHtml(v.placa||'—')} · KM atual: ${extra.km_atual?Number(extra.km_atual).toLocaleString('pt-BR')+' km':'não informado'}</div></div>
+        ${renderVeicOleoPill(v.id)}
+      </div>
+      <div class="frow" style="margin-bottom:10px">
+        <div><label class="fl first">Serviço de manutenção</label><input id="veic-manutencao-titulo-${v.id}" class="fi" placeholder="Ex: alinhamento, troca de freio"></div>
+        <div><label class="fl first">Data</label><input id="veic-manutencao-data-${v.id}" class="fi" type="date" value="${hojeISO()}"></div>
+      </div>
+      <div class="frow" style="margin-bottom:10px">
+        <div><label class="fl first">KM</label><input id="veic-manutencao-km-${v.id}" class="fi" type="number" min="0" step="1" value="${veicNum(extra.km_atual,'')||''}"></div>
+        <div><label class="fl first">Obs.</label><input id="veic-manutencao-obs-${v.id}" class="fi" placeholder="Opcional"></div>
+      </div>
+      <button type="button" class="btn btn-cinza" onclick="registrarHistoricoVeicExtra('${v.id}','manutencao')">🛠️ Registrar manutenção</button>
+      <div style="margin-top:14px;padding-top:12px;border-top:1px dashed #e6dcc7">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+          <div style="font-size:.86rem;font-weight:800;color:var(--marrom)">🛢️ Troca de óleo e quilometragem</div>
+          ${renderVeicOleoPill(v.id)}
+        </div>
+        <div class="frow" style="margin-bottom:8px">
+          <div>
+            <label class="fl first">Quilometragem atual</label>
+            <input id="veic-km-atual-${v.id}" class="fi" type="number" min="0" step="1" value="${veicNum(extra.km_atual,'')||''}" placeholder="Ex: 52340">
+          </div>
+          <div>
+            <label class="fl first">Atualizada em</label>
+            <input id="veic-km-data-${v.id}" class="fi" type="date" value="${veicDate(extra.km_atualizado_em)||hojeISO()}">
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+          <button class="btn-sm bsv" onclick="salvarKmVeiculo('${v.id}')">Salvar quilometragem</button>
+          <div style="font-size:.74rem;color:var(--cinza);display:flex;align-items:center">${oleo.diasSemAtualizar!==null?`Última atualização há ${oleo.diasSemAtualizar} dia(s)`:'Sem atualização registrada.'}</div>
+        </div>
+        <div class="frow" style="margin-bottom:8px">
+          <div>
+            <label class="fl first">Data da troca realizada</label>
+            <input id="veic-oleo-data-${v.id}" class="fi" type="date" value="${veicDate(extra.oleo_ultima_data)||hojeISO()}">
+          </div>
+          <div>
+            <label class="fl first">KM na troca</label>
+            <input id="veic-oleo-km-${v.id}" class="fi" type="number" min="0" step="1" value="${veicNum(extra.oleo_ultima_km,'')||veicNum(extra.km_atual,'')||''}" placeholder="Ex: 52000">
+          </div>
+        </div>
+        <div class="frow" style="margin-bottom:8px">
+          <div>
+            <label class="fl first">Próxima troca por km</label>
+            <input id="veic-oleo-proxkm-${v.id}" class="fi" type="number" min="0" step="1" value="${veicNum(extra.oleo_proxima_km,'')||''}" placeholder="Ex: 57000">
+          </div>
+          <div>
+            <label class="fl first">Próxima troca por data</label>
+            <input id="veic-oleo-proxdata-${v.id}" class="fi" type="date" value="${veicDate(extra.oleo_proxima_data)||''}">
+          </div>
+        </div>
+        <label class="fl first">Observação da troca (opcional)</label>
+        <input id="veic-oleo-obs-${v.id}" class="fi" type="text" placeholder="Ex: troca completa com filtro">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+          <button class="btn-sm bsc" onclick="registrarTrocaOleoVeiculo('${v.id}')">Registrar troca de óleo</button>
+        </div>
+        <div style="margin-top:10px">
+          ${getVeicOleoHist(v.id).length
+            ? `<div style="font-size:.75rem;font-weight:800;color:var(--marrom);margin-bottom:6px">Histórico recente</div>
+               <div style="display:flex;flex-direction:column;gap:6px">${getVeicOleoHist(v.id).slice(0,4).map(item=>`<div style="background:#fff;border:1px solid #eadfca;border-radius:10px;padding:8px 10px;font-size:.74rem;line-height:1.45">
+                 <strong>${fmtData(item.data)}</strong>${item.km?` · ${Number(item.km).toLocaleString('pt-BR')} km`:''}
+                 ${item.proxima_km?`<div style="color:var(--cinza)">Próxima por km: ${Number(item.proxima_km).toLocaleString('pt-BR')} km</div>`:''}
+                 ${item.proxima_data?`<div style="color:var(--cinza)">Próxima por data: ${fmtData(item.proxima_data)}</div>`:''}
+                 ${item.obs?`<div style="color:var(--cinza)">${escapeHtml(item.obs)}</div>`:''}
+               </div>`).join('')}</div>`
+            : `<div style="font-size:.74rem;color:var(--cinza)">Nenhuma troca de óleo registrada ainda.</div>`}
+        </div>
+      </div>
+      <div style="margin-top:14px">
+        <div style="font-size:.78rem;font-weight:800;color:var(--marrom);margin-bottom:6px">Manutenções recentes</div>
+        ${manut.length?`<div style="display:flex;flex-direction:column;gap:6px">${manut.slice(0,5).map(item=>renderLinhaHistVeicReg(`<strong>${fmtData(item.data)}</strong>${item.km?` · ${Number(item.km).toLocaleString('pt-BR')} km`:''}<div>${escapeHtml(item.titulo||'')}</div>${item.obs?`<div style="color:var(--cinza)">${escapeHtml(item.obs)}</div>`:''}`)).join('')}</div>`:'<div class="empty">Nenhuma manutenção registrada.</div>'}
+      </div>
+    </div>`;
+  }).join('')||'<div class="empty">Nenhum veículo cadastrado.</div>';
+}
+
+async function carregarVeicAbastecimento(){
+  const c=document.getElementById('veic-abastecimento-lista');if(!c)return;
+  await sincronizarVeicCadastroExtra();
+  const {data}=await sb.from('veiculos').select('*').order('nome');
+  VEICULOS_DATA=(data||[]).map(v=>({...v,nome:corrigirNomeVeiculo(v.nome)}));
+  preencherFiltroVeiculosAbastecimento();
+  const veiculo=(VEICULOS_DATA||[]).find(v=>v.id===veicAbastFiltroId);
+  if(!veiculo){
+    c.innerHTML='<div class="empty">Selecione um veículo para registrar o abastecimento.</div>';
+    return;
+  }
+  const extra=getVeicExtra(veiculo.id);
+  const abast=getVeicAbastHist(veiculo.id);
+  c.innerHTML=`<div class="card" style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+        <div><h3 style="margin:0">🚗 ${escapeHtml(corrigirNomeVeiculo(veiculo.nome||'Veículo'))}</h3><div style="font-size:.75rem;color:var(--cinza)">Placa: ${escapeHtml(veiculo.placa||'—')} · KM atual: ${extra.km_atual?Number(extra.km_atual).toLocaleString('pt-BR')+' km':'não informado'}</div></div>
+        <span class="veh-status vs-livre">Abastecimento</span>
+      </div>
+      <div class="frow" style="margin-top:4px">
+        <div><label class="fl first">Data do abastecimento</label><input id="veic-abastecimento-data-${veiculo.id}" class="fi" type="date" value="${hojeISO()}"></div>
+        <div><label class="fl first">Combustível</label><select id="veic-abastecimento-comb-${veiculo.id}" class="fi"><option value="">Tipo do combustível</option>${['Gasolina','Etanol','Flex','Diesel','GNV'].map(tp=>`<option ${extra.tipo_combustivel===tp?'selected':''}>${tp}</option>`).join('')}</select></div>
+      </div>
+      <div class="frow" style="margin-bottom:10px">
+        <div><label class="fl first">Litros</label><input id="veic-abastecimento-litros-${veiculo.id}" class="fi" type="number" min="0" step="0.01"></div>
+        <div><label class="fl first">Valor</label><input id="veic-abastecimento-valor-${veiculo.id}" class="fi" type="number" min="0" step="0.01"></div>
+      </div>
+      <div class="frow" style="margin-bottom:10px">
+        <div><label class="fl first">KM</label><input id="veic-abastecimento-km-${veiculo.id}" class="fi" type="number" min="0" step="1" value="${veicNum(extra.km_atual,'')||''}"></div>
+        <div><label class="fl first">Obs.</label><input id="veic-abastecimento-obs-${veiculo.id}" class="fi" placeholder="Ex: viagem São Paulo"></div>
+      </div>
+      <button type="button" class="btn btn-ouro" onclick="registrarHistoricoVeicExtra('${veiculo.id}','abastecimento')">⛽ Registrar abastecimento</button>
+      <div style="margin-top:14px">
+        <div style="font-size:.78rem;font-weight:800;color:var(--marrom);margin-bottom:6px">Abastecimentos recentes</div>
+        ${abast.length?`<div style="display:flex;flex-direction:column;gap:6px">${abast.slice(0,6).map(item=>renderLinhaHistVeicReg(`<strong>${fmtData(item.data)}</strong>${item.km?` · ${Number(item.km).toLocaleString('pt-BR')} km`:''}<div>${item.litros?`${String(item.litros).replace('.',',')} L`:''}${item.valor?` · ${fmt(item.valor)}`:''}</div>${item.combustivel?`<div style="color:var(--cinza)">${escapeHtml(item.combustivel)}</div>`:''}${item.obs?`<div style="color:var(--cinza)">${escapeHtml(item.obs)}</div>`:''}`)).join('')}</div>`:'<div class="empty">Nenhum abastecimento registrado.</div>'}
+      </div>
+    </div>`;
 }
 
 // ══════════════════════════════════════════════════════
@@ -5977,62 +6396,6 @@ async function renderVeiculosCadastro(){
         <div style="margin-top:8px">
           <button class="btn-sm bsv" ${pend.apolice_file?'':'disabled style="opacity:.55;cursor:not-allowed"'} onclick="salvarApoliceVeiculo('${v.id}')">Salvar apólice</button>
           ${extra.apolice_dataurl?`<button class="btn-sm bsr" style="margin-left:8px" onclick="removerApoliceVeiculo('${v.id}')">🗑️ Excluir apólice</button>`:''}
-        </div>
-      </div>
-      <div style="margin-top:12px;padding-top:12px;border-top:1px dashed #e6dcc7">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-          <div style="font-size:.86rem;font-weight:800;color:var(--marrom)">🛢️ Troca de óleo e quilometragem</div>
-          ${renderVeicOleoPill(v.id)}
-        </div>
-        <div class="frow" style="margin-bottom:8px">
-          <div>
-            <label class="fl first">Quilometragem atual</label>
-            <input id="veic-km-atual-${v.id}" class="fi" type="number" min="0" step="1" value="${veicNum(extra.km_atual,'')||''}" placeholder="Ex: 52340">
-          </div>
-          <div>
-            <label class="fl first">Atualizada em</label>
-            <input id="veic-km-data-${v.id}" class="fi" type="date" value="${veicDate(extra.km_atualizado_em)||hojeISO()}">
-          </div>
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-          <button class="btn-sm bsv" onclick="salvarKmVeiculo('${v.id}')">Salvar quilometragem</button>
-          <div style="font-size:.74rem;color:var(--cinza);display:flex;align-items:center">${getVeicOleoStatus(v.id).diasSemAtualizar!==null?`Última atualização há ${getVeicOleoStatus(v.id).diasSemAtualizar} dia(s)`:'Sem atualização registrada.'}</div>
-        </div>
-        <div class="frow" style="margin-bottom:8px">
-          <div>
-            <label class="fl first">Data da troca realizada</label>
-            <input id="veic-oleo-data-${v.id}" class="fi" type="date" value="${veicDate(extra.oleo_ultima_data)||hojeISO()}">
-          </div>
-          <div>
-            <label class="fl first">KM na troca</label>
-            <input id="veic-oleo-km-${v.id}" class="fi" type="number" min="0" step="1" value="${veicNum(extra.oleo_ultima_km,'')||veicNum(extra.km_atual,'')||''}" placeholder="Ex: 52000">
-          </div>
-        </div>
-        <div class="frow" style="margin-bottom:8px">
-          <div>
-            <label class="fl first">Próxima troca por km</label>
-            <input id="veic-oleo-proxkm-${v.id}" class="fi" type="number" min="0" step="1" value="${veicNum(extra.oleo_proxima_km,'')||''}" placeholder="Ex: 57000">
-          </div>
-          <div>
-            <label class="fl first">Próxima troca por data</label>
-            <input id="veic-oleo-proxdata-${v.id}" class="fi" type="date" value="${veicDate(extra.oleo_proxima_data)||''}">
-          </div>
-        </div>
-        <label class="fl first">Observação da troca (opcional)</label>
-        <input id="veic-oleo-obs-${v.id}" class="fi" type="text" placeholder="Ex: troca completa com filtro">
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-          <button class="btn-sm bsc" onclick="registrarTrocaOleoVeiculo('${v.id}')">Registrar troca de óleo</button>
-        </div>
-        <div style="margin-top:10px">
-          ${getVeicOleoHist(v.id).length
-            ? `<div style="font-size:.75rem;font-weight:800;color:var(--marrom);margin-bottom:6px">Histórico recente</div>
-               <div style="display:flex;flex-direction:column;gap:6px">${getVeicOleoHist(v.id).slice(0,4).map(item=>`<div style="background:#fff;border:1px solid #eadfca;border-radius:10px;padding:8px 10px;font-size:.74rem;line-height:1.45">
-                 <strong>${fmtData(item.data)}</strong>${item.km?` · ${Number(item.km).toLocaleString('pt-BR')} km`:''}
-                 ${item.proxima_km?`<div style="color:var(--cinza)">Próxima por km: ${Number(item.proxima_km).toLocaleString('pt-BR')} km</div>`:''}
-                 ${item.proxima_data?`<div style="color:var(--cinza)">Próxima por data: ${fmtData(item.proxima_data)}</div>`:''}
-                 ${item.obs?`<div style="color:var(--cinza)">${escapeHtml(item.obs)}</div>`:''}
-               </div>`).join('')}</div>`
-            : `<div style="font-size:.74rem;color:var(--cinza)">Nenhuma troca de óleo registrada ainda.</div>`}
         </div>
       </div>
     </div>`;
@@ -11851,9 +12214,23 @@ async function gerarPDFComprovantes(banco, mes=mesAtual){
 
 function renderVeicHistLista(lista){
   const c=document.getElementById('veic-hist-lista');if(!c)return;
-  c.innerHTML=lista.length?lista.map(v=>`
+  const acoes=podeGerirHistoricoMotoristas()?`
+    <div class="card" style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+        <div style="font-size:.78rem;color:var(--cinza)">Kelven e os freis podem limpar registros de teste diretamente por aqui.</div>
+        <button type="button" class="btn-sm bsr" onclick="limparHistoricoMotoristasVeiculos()">🗑️ Excluir histórico de motoristas</button>
+      </div>
+    </div>
+  `:'';
+  c.innerHTML=acoes + (lista.length?lista.map(v=>`
     <div class="hist-viagem">
-      <div class="hv-top"><div class="hv-nome">${v.motorista}</div><span class="hv-veh">🚗 ${corrigirNomeVeiculo(v.veiculo_nome)}</span></div>
+      <div class="hv-top">
+        <div class="hv-nome">${v.motorista}</div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span class="hv-veh">🚗 ${corrigirNomeVeiculo(v.veiculo_nome)}</span>
+          ${podeGerirHistoricoMotoristas()?`<button type="button" class="btn-sm bsr" onclick="excluirHistoricoMotoristaVeiculos('${v.id}')">Excluir</button>`:''}
+        </div>
+      </div>
       <div class="hv-times">
         <span>📅 ${v.data}</span><span>🟢 ${v.saida}</span>
         ${v.chegada?`<span>🏁 ${v.chegada}</span>`:'<span style="color:var(--fogo);font-weight:600">⏳ Em viagem</span>'}
@@ -11861,7 +12238,10 @@ function renderVeicHistLista(lista){
       </div>
       ${v.destino?`<div style="margin-top:4px;font-size:.73rem;color:var(--azul)">📍 ${v.destino}</div>`:''}
       ${v.obs?`<div class="hv-obs">"${v.obs}"</div>`:''}
-    </div>`).join(''):'<div class="empty">Nenhuma viagem.</div>';
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+        <button type="button" class="btn-sm bsc" style="font-weight:800" onclick="editarViagemVeiculo('${v.id}')">✏️ Editar este registro</button>
+      </div>
+    </div>`).join(''):'<div class="empty">Nenhuma viagem.</div>');
 }
 
 async function carregarVeicObs(){
@@ -13478,8 +13858,16 @@ renderVeiculos = async function(){
   limparAvisosVeiculosExpirados();
   await sincronizarVeicCadastroExtra();
   atualizarAbaCadastroVeiculosVisibilidade();
-  const motorOpts=(TODOS_IRMAOS||[]).map(n=>`<option>${escapeHtml(n)}</option>`).join('');
+  const {data:veics}=await sb.from('veiculos').select('*').order('nome');
+  VEICULOS_DATA=(veics||[]).map(v=>({...v,nome:corrigirNomeVeiculo(v.nome)}));
+  const selPainel=document.getElementById('veic-painel-filtro');
   const todos=(VEICULOS_DATA||[]);
+  if(selPainel){
+    const atualExiste=todos.some(v=>v.id===veicPainelFiltroId);
+    if(veicPainelFiltroId && !atualExiste)veicPainelFiltroId='';
+    selPainel.innerHTML='<option value="">Selecione o veículo...</option>'+todos.map(v=>`<option value="${v.id}" ${v.id===veicPainelFiltroId?'selected':''}>${escapeHtml(corrigirNomeVeiculo(v.nome||'Veículo'))}</option>`).join('');
+  }
+  const motorOpts=(TODOS_IRMAOS||[]).map(n=>`<option>${escapeHtml(n)}</option>`).join('');
   const disponiveis=[];
   const indisponiveis=[];
   todos.forEach(v=>{
@@ -13492,9 +13880,9 @@ renderVeiculos = async function(){
   c.innerHTML='';
   c.classList.remove('veh-galeria');
   c.innerHTML=`
-    <div class="veh-pick-intro">
-      <strong>Selecione aqui o carro que irá utilizar</strong>
-      Os carros disponíveis aparecem abaixo. Toque em um deles para abrir o formulário de saída.
+    <div class="veh-pick-intro" style="margin-bottom:14px">
+      <strong>Status dos veículos</strong>
+      Veja abaixo se o carro está livre, em uso ou indisponível. Depois selecione o veículo no campo acima para abrir a saída.
     </div>
   `;
 
@@ -13510,122 +13898,116 @@ renderVeiculos = async function(){
     if(n.includes('spin'))return 'Automático';
     return 'Manual';
   }
-
-  if(disponiveis.length){
-    c.insertAdjacentHTML('beforeend','<div class="veh-list-section"><h3 class="veh-list-title">Disponíveis para saída</h3></div>');
-  }
-  disponiveis.forEach(v=>{
-    const aberto=veiculoPainelAbertoId===v.id;
-    const extra=getVeicExtra(v.id);
-    const avisos=avisosVeiculoAtivos(v.id);
-    const oleo=getVeicOleoStatus(v.id);
+  const statusCards=todos.map(v=>{
+    const uso=vehEmUso[v.id];
+    const status=statusVeiculoMeta(v.id);
     const nome=corrigirNomeVeiculo(v.nome||'Veículo');
-    const placa=v.placa||'Sem placa';
+    let badge='Disponível', cls='vs-livre';
+    if(uso){ badge='Em uso'; cls='vs-uso'; }
+    else if(status.tipo==='manutencao'){ badge='Manutenção'; cls='vs-uso'; }
+    else if(status.tipo==='conserto'){ badge='Conserto'; cls='vs-uso'; }
+    return `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid #eadfca;border-radius:12px;padding:10px 12px;background:#fff">
+      <div>
+        <div style="font-weight:800;color:var(--marrom)">${escapeHtml(nome)}</div>
+        <div style="font-size:.73rem;color:var(--cinza)">${escapeHtml(v.placa||'Sem placa')}</div>
+      </div>
+      <span class="veh-status ${cls}">${badge}</span>
+    </div>`;
+  }).join('');
+  const selecionado=todos.find(v=>v.id===veicPainelFiltroId);
+  if(selecionado){
+    const uso=vehEmUso[selecionado.id];
+    const status=statusVeiculoMeta(selecionado.id);
+    const bloqueado=status.tipo==='manutencao'||status.tipo==='conserto';
+    const extra=getVeicExtra(selecionado.id);
+    const avisos=avisosVeiculoAtivos(selecionado.id);
+    const oleo=getVeicOleoStatus(selecionado.id);
+    const nome=corrigirNomeVeiculo(selecionado.nome||'Veículo');
+    const placa=selecionado.placa||'Sem placa';
     const tipoComb=extra.tipo_combustivel||'Não informado';
     const cambio=_cambio(nome,extra);
     const lugares=_lugares(nome);
-    const cnh=v.van?'Categoria D':'Categoria B';
-    const div=document.createElement('div');
-    div.className='veh-card livre';
-    div.setAttribute('data-veh-card', v.id);
-    div.innerHTML=`
-      <div class="veh-top">
-        <div>
-          <div class="veh-nome">${escapeHtml(nome)}</div>
-          <div class="veh-placa">${escapeHtml(placa)} · ${escapeHtml(lugares)} · ${escapeHtml(cambio)}</div>
-        </div>
-        <span class="veh-status vs-livre">Disponível</span>
-      </div>
-      ${fuelBarHTML(v.combustivel)}
-      ${avisos.length?`<div style="background:#fff3cd;border:1px solid #f3d48a;color:#7a4d00;border-radius:10px;padding:8px 10px;margin-bottom:8px;font-size:.74rem;line-height:1.4"><strong>⚠️ Aviso do Ir. Kelven</strong><br>${avisos.map(item=>escapeHtml(resumoAvisoVeiculo(item))).join('<br>')}</div>`:''}
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-        <div style="background:#faf7f0;border:1px solid #eadfca;border-radius:10px;padding:8px 10px;font-size:.74rem"><strong>Combustível</strong><br>${escapeHtml(tipoComb)}</div>
-        <div style="background:#faf7f0;border:1px solid #eadfca;border-radius:10px;padding:8px 10px;font-size:.74rem"><strong>CNH</strong><br>${escapeHtml(cnh)}</div>
-      </div>
-      ${oleo.tipo!=='ok' ? `<div style="background:${oleo.tipo==='critico'?'#fdeceb':'#fff8e1'};border:1px solid ${oleo.tipo==='critico'?'#f1b0ad':'#f1d48a'};color:${oleo.tipo==='critico'?'#b42318':'#8a6500'};border-radius:10px;padding:8px 10px;margin-bottom:10px;font-size:.74rem;line-height:1.45"><strong>🛢️ ${escapeHtml(oleo.titulo)}</strong><br>${escapeHtml(oleo.detalhe)}</div>`:''}
-      <button type="button" class="btn btn-ouro" style="width:100%;margin-bottom:${aberto?'8px':'0'}" onclick="toggleVeiculoPainel('${v.id}')">${aberto?'Fechar':'Abrir saída deste veículo'}</button>
-      <div style="display:${aberto?'block':'none'}">
-        <div style="background:linear-gradient(135deg,#fffaf0,#f7efdf);border:1px solid #eadfca;border-radius:12px;padding:10px 12px;margin:8px 0 10px;font-size:.78rem;color:var(--marrom)">
-          <strong>Você está com o veículo ativo:</strong> ${escapeHtml(nome)}. Confira os documentos abaixo e depois registre a saída.
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0 10px">
-          <div style="background:#faf7f0;border:1px solid #eadfca;border-radius:10px;padding:8px 10px;font-size:.74rem"><strong>Documento</strong><br>${extra.documento_dataurl?`<button type="button" class="btn-sm" style="margin-top:5px;background:#eef5ff;color:#1565C0" onclick="abrirDocumentoVeiculo('${v.id}')">📄 Ver documento</button>`:'Não anexado'}</div>
-          <div style="background:#faf7f0;border:1px solid #eadfca;border-radius:10px;padding:8px 10px;font-size:.74rem"><strong>Seguro</strong><br>${extra.apolice_dataurl?`<button type="button" class="btn-sm" style="margin-top:5px;background:#eef8ef;color:#2E7D32" onclick="abrirApoliceVeiculo('${v.id}')">🛡️ Ver apólice</button>`:'Não anexado'}</div>
-        </div>
-        <select class="veh-sel" id="sel-mot-${v.id}"><option value="">Selecione o motorista...</option>${motorOpts}</select>
-        <select class="veh-sel" id="dest-${v.id}" onchange="onDestChange('${v.id}')">
-          <option value="">📍 Selecione o destino...</option>
-          <option>São Pedro</option>
-          <option>Piracicaba</option>
-          <option>São Paulo</option>
-          <option>Paróquia Imaculada Conceição</option>
-          <option>Paróquia Santa Maria da Serra</option>
-          <option>Cúria Diocesana de Piracicaba</option>
-          <option>Outro</option>
-        </select>
-        <input type="text" class="veh-sel" id="dest-outro-${v.id}" placeholder="Especifique o destino..." style="display:none">
-        <div style="margin-bottom:7px">
-          <p style="font-size:.73rem;color:var(--cinza);margin-bottom:6px">⚠️ Observações sobre o veículo:</p>
-          <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px" id="obs-chips-${v.id}">
-            <button type="button" class="obs-chip" onclick="toggleObsChip(this,'${v.id}')">🔧 Óleo baixo</button>
-            <button type="button" class="obs-chip" onclick="toggleObsChip(this,'${v.id}')">🔧 Trocar óleo</button>
-            <button type="button" class="obs-chip" onclick="toggleObsChip(this,'${v.id}')">⚠️ Luz do motor acesa</button>
-            <button type="button" class="obs-chip" onclick="toggleObsChip(this,'${v.id}')">🔊 Barulho no motor</button>
-            <button type="button" class="obs-chip" onclick="toggleObsChip(this,'${v.id}')">🛑 Freio com problema</button>
-            <button type="button" class="obs-chip" onclick="toggleObsChip(this,'${v.id}')">⛽ Combustível acabando</button>
-            <button type="button" class="obs-chip" onclick="toggleObsChip(this,'${v.id}')">🔧 Pneu murcho</button>
-            <button type="button" class="obs-chip" onclick="toggleObsChip(this,'${v.id}')">🔧 Pneu careca</button>
-            <button type="button" class="obs-chip" onclick="toggleObsChip(this,'${v.id}')">🧹 Carro sujo</button>
-            <button type="button" class="obs-chip" onclick="toggleObsChip(this,'${v.id}')">💡 Luz queimada</button>
-            <button type="button" class="obs-chip" onclick="toggleObsChip(this,'${v.id}')">🔋 Bateria fraca</button>
-            <button type="button" class="obs-chip" onclick="toggleObsChip(this,'${v.id}')">❄️ Ar condicionado com problema</button>
+    const cnh=selecionado.van?'Categoria D':'Categoria B';
+    const statusLabel=uso?'Em uso':status.tipo==='manutencao'?'Em manutenção':status.tipo==='conserto'?'No conserto':'Disponível';
+    const statusCls=uso||bloqueado?'vs-uso':'vs-livre';
+    c.insertAdjacentHTML('beforeend', `
+      <div class="veh-list-section"><h3 class="veh-list-title">${uso?'Veículo em uso':'Veículo selecionado'}</h3></div>
+      <div class="veh-card ${bloqueado?'blocked':''}${uso?' em-uso':' livre'}" style="margin-bottom:14px">
+        <div class="veh-top">
+          <div>
+            <div class="veh-nome">${escapeHtml(nome)}</div>
+            <div class="veh-placa">${escapeHtml(placa)} · ${escapeHtml(lugares)} · ${escapeHtml(cambio)}</div>
           </div>
-          <input type="text" class="veh-sel" id="obs-outro-${v.id}" placeholder="Outra observação (opcional)...">
+          <span class="veh-status ${statusCls}">${escapeHtml(statusLabel)}</span>
         </div>
-        <textarea class="veh-obs-ta" id="obs-${v.id}" rows="1" style="display:none"></textarea>
-        <button class="veh-btn-s" onclick="registrarSaidaComObs('${v.id}')">🚗 Saindo agora — ${hoje()} ${agora()}</button>
-      </div>
-    `;
-    c.appendChild(div);
-  });
-
-  if(indisponiveis.length){
-    c.insertAdjacentHTML('beforeend','<div class="veh-list-section" style="margin-top:16px"><h3 class="veh-list-title">Indisponíveis ou já em uso</h3></div>');
-  }
-  indisponiveis.forEach(v=>{
-    const uso=vehEmUso[v.id];
-    const status=statusVeiculoMeta(v.id);
-    const avisos=avisosVeiculoAtivos(v.id);
-    const statusLabel=status.tipo==='manutencao'?'Em manutenção':status.tipo==='conserto'?'No conserto':'Em uso';
-    const statusCls=uso?'vs-uso':'vs-uso';
-    const div=document.createElement('div');
-    div.className='veh-card blocked'+(uso?' em-uso':'');
-    div.innerHTML=`
-      <div class="veh-top">
-        <div>
-          <div class="veh-nome">${escapeHtml(corrigirNomeVeiculo(v.nome||''))}</div>
-          <div class="veh-placa">${escapeHtml(v.placa||'Sem placa')}</div>
+        ${fuelBarHTML(selecionado.combustivel)}
+        ${avisos.length?`<div style="background:#fff3cd;border:1px solid #f3d48a;color:#7a4d00;border-radius:10px;padding:8px 10px;margin-bottom:8px;font-size:.74rem;line-height:1.4"><strong>⚠️ Aviso do Ir. Kelven</strong><br>${avisos.map(item=>escapeHtml(resumoAvisoVeiculo(item))).join('<br>')}</div>`:''}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+          <div style="background:#faf7f0;border:1px solid #eadfca;border-radius:10px;padding:8px 10px;font-size:.74rem"><strong>Combustível</strong><br>${escapeHtml(tipoComb)}</div>
+          <div style="background:#faf7f0;border:1px solid #eadfca;border-radius:10px;padding:8px 10px;font-size:.74rem"><strong>CNH</strong><br>${escapeHtml(cnh)}</div>
         </div>
-        <span class="veh-status ${statusCls}">${escapeHtml(statusLabel)}</span>
+        ${oleo.tipo!=='ok' ? `<div style="background:${oleo.tipo==='critico'?'#fdeceb':'#fff8e1'};border:1px solid ${oleo.tipo==='critico'?'#f1b0ad':'#f1d48a'};color:${oleo.tipo==='critico'?'#b42318':'#8a6500'};border-radius:10px;padding:8px 10px;margin-bottom:10px;font-size:.74rem;line-height:1.45"><strong>🛢️ ${escapeHtml(oleo.titulo)}</strong><br>${escapeHtml(oleo.detalhe)}</div>`:''}
+        ${uso?`
+          <div class="veh-uso-info">
+            <strong>${escapeHtml(uso.motorista)}</strong> saiu às <strong>${escapeHtml(uso.saida)}</strong> em ${escapeHtml(uso.data)}
+            ${uso.destino?`<div style="margin-top:3px">📍 <strong>${escapeHtml(uso.destino)}</strong></div>`:''}
+            ${uso.obs?`<div style="margin-top:3px;font-style:italic">"${escapeHtml(uso.obs)}"</div>`:''}
+          </div>
+          <select class="fuel-sel" id="fuel-${selecionado.id}">
+            <option value="">⛽ Nível de combustível ao chegar... (obrigatório)</option>
+            ${FUEL_OPTS.map(o=>`<option value="${o.val}">${escapeHtml(o.label)}</option>`).join('')}
+          </select>
+          <button class="veh-btn-c" onclick="registrarChegada('${selecionado.id}')">✅ Cheguei — ${hoje()} ${agora()}</button>
+        `: bloqueado?`
+          <div class="empty" style="padding:10px 0">Este veículo está temporariamente bloqueado para uso.${status.detalhe?`<br><small>${escapeHtml(status.detalhe)}</small>`:''}</div>
+        `:`
+          <div style="background:linear-gradient(135deg,#fffaf0,#f7efdf);border:1px solid #eadfca;border-radius:12px;padding:10px 12px;margin:8px 0 10px;font-size:.78rem;color:var(--marrom)">
+            <strong>Você selecionou:</strong> ${escapeHtml(nome)}. Confira os documentos abaixo e depois registre a saída.
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0 10px">
+            <div style="background:#faf7f0;border:1px solid #eadfca;border-radius:10px;padding:8px 10px;font-size:.74rem"><strong>Documento</strong><br>${extra.documento_dataurl?`<button type="button" class="btn-sm" style="margin-top:5px;background:#eef5ff;color:#1565C0" onclick="abrirDocumentoVeiculo('${selecionado.id}')">📄 Ver documento</button>`:'Não anexado'}</div>
+            <div style="background:#faf7f0;border:1px solid #eadfca;border-radius:10px;padding:8px 10px;font-size:.74rem"><strong>Seguro</strong><br>${extra.apolice_dataurl?`<button type="button" class="btn-sm" style="margin-top:5px;background:#eef8ef;color:#2E7D32" onclick="abrirApoliceVeiculo('${selecionado.id}')">🛡️ Ver apólice</button>`:'Não anexado'}</div>
+          </div>
+          <select class="veh-sel" id="sel-mot-${selecionado.id}"><option value="">Selecione o motorista...</option>${motorOpts}</select>
+          <select class="veh-sel" id="dest-${selecionado.id}" onchange="onDestChange('${selecionado.id}')">
+            <option value="">📍 Selecione o destino...</option>
+            <option>São Pedro</option>
+            <option>Piracicaba</option>
+            <option>São Paulo</option>
+            <option>Paróquia Imaculada Conceição</option>
+            <option>Paróquia Santa Maria da Serra</option>
+            <option>Cúria Diocesana de Piracicaba</option>
+            <option>Outro</option>
+          </select>
+          <input type="text" class="veh-sel" id="dest-outro-${selecionado.id}" placeholder="Especifique o destino..." style="display:none">
+          <div style="margin-bottom:7px">
+            <p style="font-size:.73rem;color:var(--cinza);margin-bottom:6px">⚠️ Observações sobre o veículo:</p>
+            <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px" id="obs-chips-${selecionado.id}">
+              <button type="button" class="obs-chip" onclick="toggleObsChip(this,'${selecionado.id}')">🔧 Óleo baixo</button>
+              <button type="button" class="obs-chip" onclick="toggleObsChip(this,'${selecionado.id}')">🔧 Trocar óleo</button>
+              <button type="button" class="obs-chip" onclick="toggleObsChip(this,'${selecionado.id}')">⚠️ Luz do motor acesa</button>
+              <button type="button" class="obs-chip" onclick="toggleObsChip(this,'${selecionado.id}')">🔊 Barulho no motor</button>
+              <button type="button" class="obs-chip" onclick="toggleObsChip(this,'${selecionado.id}')">🛑 Freio com problema</button>
+              <button type="button" class="obs-chip" onclick="toggleObsChip(this,'${selecionado.id}')">⛽ Combustível acabando</button>
+              <button type="button" class="obs-chip" onclick="toggleObsChip(this,'${selecionado.id}')">🔧 Pneu murcho</button>
+              <button type="button" class="obs-chip" onclick="toggleObsChip(this,'${selecionado.id}')">🔧 Pneu careca</button>
+              <button type="button" class="obs-chip" onclick="toggleObsChip(this,'${selecionado.id}')">🧹 Carro sujo</button>
+              <button type="button" class="obs-chip" onclick="toggleObsChip(this,'${selecionado.id}')">💡 Luz queimada</button>
+              <button type="button" class="obs-chip" onclick="toggleObsChip(this,'${selecionado.id}')">🔋 Bateria fraca</button>
+              <button type="button" class="obs-chip" onclick="toggleObsChip(this,'${selecionado.id}')">❄️ Ar condicionado com problema</button>
+            </div>
+            <input type="text" class="veh-sel" id="obs-outro-${selecionado.id}" placeholder="Outra observação (opcional)...">
+          </div>
+          <textarea class="veh-obs-ta" id="obs-${selecionado.id}" rows="1" style="display:none"></textarea>
+          <button class="veh-btn-s" onclick="registrarSaidaComObs('${selecionado.id}')">🚗 Saindo agora — ${hoje()} ${agora()}</button>
+        `}
       </div>
-      ${avisos.length?`<div style="background:#fff3cd;border:1px solid #f3d48a;color:#7a4d00;border-radius:10px;padding:8px 10px;margin-bottom:8px;font-size:.74rem;line-height:1.4"><strong>⚠️ Aviso do Ir. Kelven</strong><br>${avisos.map(item=>escapeHtml(resumoAvisoVeiculo(item))).join('<br>')}</div>`:''}
-      ${uso?`<div class="veh-uso-info">
-        <strong>${escapeHtml(uso.motorista)}</strong> saiu às <strong>${escapeHtml(uso.saida)}</strong> em ${escapeHtml(uso.data)}
-        ${uso.destino?`<div style="margin-top:3px">📍 <strong>${escapeHtml(uso.destino)}</strong></div>`:''}
-        ${uso.obs?`<div style="margin-top:3px;font-style:italic">"${escapeHtml(uso.obs)}"</div>`:''}
-      </div>
-      <select class="fuel-sel" id="fuel-${v.id}">
-        <option value="">⛽ Nível de combustível ao chegar... (obrigatório)</option>
-        ${FUEL_OPTS.map(o=>`<option value="${o.val}">${escapeHtml(o.label)}</option>`).join('')}
-      </select>
-      <button class="veh-btn-c" onclick="registrarChegada('${v.id}')">✅ Cheguei — ${hoje()} ${agora()}</button>`:`<div class="empty" style="padding:10px 0">Este veículo está temporariamente bloqueado para uso.${status.detalhe?`<br><small>${escapeHtml(status.detalhe)}</small>`:''}</div>`}
-    `;
-    c.appendChild(div);
-  });
-
-  if(!disponiveis.length && !indisponiveis.length){
-    c.innerHTML='<div class="veh-pick-intro"><strong>Selecione aqui o carro que irá utilizar</strong>Os carros disponíveis aparecem abaixo. Toque em um deles para abrir o formulário de saída.</div><div class="empty">Nenhum veículo cadastrado.</div>';
+    `);
+  }else{
+    c.insertAdjacentHTML('beforeend', `<div class="empty" style="margin-bottom:14px">Selecione um veículo acima para abrir a saída.</div>`);
   }
+
+  c.insertAdjacentHTML('beforeend', `<div class="card" style="margin-bottom:14px"><div style="display:flex;flex-direction:column;gap:8px">${statusCards||'<div class="empty">Nenhum veículo cadastrado.</div>'}</div></div>`);
 };
 
 carregarVeicObs = async function(){
