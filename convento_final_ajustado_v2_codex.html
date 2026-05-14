@@ -5134,6 +5134,14 @@ function toggleChegadaOutroDia(vehId){
   wrap.style.display=aberto?'none':'block';
   btn.textContent=aberto?'🗓️ Chegada em outro dia':'✕ Voltar para chegada no mesmo dia';
 }
+function toggleVeicHistChegadaOutroDia(){
+  const wrap=document.getElementById('veic-hm-data-chegada-wrap');
+  const btn=document.getElementById('veic-hm-data-chegada-btn');
+  if(!wrap || !btn)return;
+  const aberto=wrap.style.display!=='none';
+  wrap.style.display=aberto?'none':'block';
+  btn.textContent=aberto?'🗓️ Chegada em outro dia':'✕ Voltar para chegada no mesmo dia';
+}
 function todosMotoristasVeiculo(){
   const mapa=new Map();
   const add=(nome='',tipo='irmao',van=false)=>{
@@ -5404,6 +5412,7 @@ function renderVeicHistForm(item=null){
   const veicId=edit?.veiculo_id||document.getElementById('veic-hm-veiculo')?.value||VEICULOS_DATA?.[0]?.id||'';
   const motoristas=motoristasPermitidosVeiculo(veicId);
   const dataChegadaEdit=veicDate(edit?.data_chegada)||veicExtrairDataChegada(edit)||veicDate(edit?.data)||hojeISO();
+  const usaOutroDia = !!(edit?.chegada && dataChegadaEdit && dataChegadaEdit!==veicDate(edit?.data));
   const veicOpts=(VEICULOS_DATA||[]).map(v=>`<option value="${v.id}" ${v.id===veicId?'selected':''}>${escapeHtml(corrigirNomeVeiculo(v.nome||'Veículo'))}</option>`).join('');
   const motOpts=(motoristas||[]).map(i=>`<option ${i.nome===String(edit?.motorista||'')?'selected':''}>${escapeHtml(i.nome)}</option>`).join('');
   c.innerHTML=`<div class="card" style="margin-bottom:12px">
@@ -5421,11 +5430,17 @@ function renderVeicHistForm(item=null){
     </div>
     <div class="frow">
       <div><label class="fl">Saída</label><input id="veic-hm-saida" class="fi" type="time" value="${edit?.saida||''}"></div>
-      <div><label class="fl">Data da chegada</label><input id="veic-hm-data-chegada" class="fi" type="date" value="${dataChegadaEdit}"></div>
-    </div>
-    <div class="frow">
-      <div><label class="fl">Chegada</label><input id="veic-hm-chegada" class="fi" type="time" value="${edit?.chegada||''}"></div>
-      <div></div>
+      <div>
+        <label class="fl">Chegada</label>
+        <input id="veic-hm-chegada" class="fi" type="time" value="${edit?.chegada||''}">
+        <div style="margin-top:8px">
+          <button type="button" class="btn-sm bsc" id="veic-hm-data-chegada-btn" onclick="toggleVeicHistChegadaOutroDia()">${usaOutroDia?'✕ Voltar para chegada no mesmo dia':'🗓️ Chegada em outro dia'}</button>
+        </div>
+        <div id="veic-hm-data-chegada-wrap" style="display:${usaOutroDia?'block':'none'};margin-top:8px">
+          <label class="fl">Data da chegada</label>
+          <input id="veic-hm-data-chegada" class="fi" type="date" value="${dataChegadaEdit}">
+        </div>
+      </div>
     </div>
     <div class="frow">
       <div><label class="fl">Combustível ao chegar</label><select id="veic-hm-comb" class="fi"><option value="">Não informar</option>${FUEL_OPTS.map(o=>`<option value="${o.val}" ${String(edit?.combustivel||'')===String(o.val)?'selected':''}>${o.label}</option>`).join('')}</select></div>
