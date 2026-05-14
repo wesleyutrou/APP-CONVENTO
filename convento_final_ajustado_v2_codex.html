@@ -784,28 +784,29 @@ header p{font-size:.62rem;color:rgba(201,151,58,.65);margin-top:1px;}
 .tabs::-webkit-scrollbar{display:none;}
 .tab-btn{flex:1;min-width:52px;padding:9px 4px;background:none;border:none;color:rgba(201,151,58,.5);font-family:'Source Sans 3',sans-serif;font-size:.62rem;font-weight:600;cursor:pointer;text-transform:uppercase;letter-spacing:.03em;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s;white-space:nowrap;}
 .tab-btn.active{color:var(--ouro);border-bottom-color:var(--ouro);}
-#screen-veiculos .tabs.veh-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));overflow:visible}
-#screen-veiculos .tabs.veh-tabs .tab-btn{white-space:normal;line-height:1.15;min-width:0;padding:10px 6px;font-size:.67rem}
-@media (min-width: 720px){
-  #screen-veiculos .tabs.veh-tabs{display:flex;overflow-x:auto}
-  #screen-veiculos .tabs.veh-tabs .tab-btn{white-space:nowrap;font-size:.72rem;padding:10px 8px}
-}
+#screen-veiculos .tabs.veh-tabs{display:flex!important;flex-wrap:nowrap!important;overflow-x:auto!important;overflow-y:hidden!important;gap:8px;padding:8px;scrollbar-width:none;-ms-overflow-style:none}
+#screen-veiculos .tabs.veh-tabs::-webkit-scrollbar{display:none}
+#screen-veiculos .tabs.veh-tabs .tab-btn{flex:0 0 auto;white-space:nowrap!important;line-height:1.15;min-width:max-content;padding:10px 12px;font-size:.72rem}
 #screen-veiculos .tabs{
-  display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:6px;
+  display:flex;
+  flex-wrap:nowrap;
+  gap:8px;
   padding:8px;
-  overflow:visible;
+  overflow-x:auto;
+  overflow-y:hidden;
+  scrollbar-width:none;
 }
+#screen-veiculos .tabs::-webkit-scrollbar{display:none}
 #screen-veiculos .tabs .tab-btn{
-  min-width:0;
+  flex:0 0 auto;
+  min-width:max-content;
   margin-bottom:0;
   border-bottom:none;
   border-radius:12px;
-  padding:10px 6px;
-  white-space:normal;
+  padding:10px 12px;
+  white-space:nowrap;
   line-height:1.15;
-  font-size:.68rem;
+  font-size:.72rem;
   letter-spacing:0;
   background:rgba(255,255,255,.04);
 }
@@ -815,12 +816,9 @@ header p{font-size:.62rem;color:rgba(201,151,58,.65);margin-top:1px;}
   box-shadow:inset 0 0 0 1px rgba(201,151,58,.28);
 }
 @media (max-width:560px){
-  #screen-veiculos .tabs{
-    grid-template-columns:repeat(2,minmax(0,1fr));
-  }
   #screen-veiculos .tabs .tab-btn{
-    font-size:.64rem;
-    padding:9px 5px;
+    font-size:.68rem;
+    padding:9px 10px;
   }
 }
 #screen-contab .tabs .tab-btn.bank-tab{border-radius:14px 14px 0 0;margin:0 2px -2px;padding-left:8px;padding-right:8px;}
@@ -4513,6 +4511,7 @@ function goHome(){
 
 let ultimoRefreshAtivoTs=0;
 let contabInteracaoAteTs=0;
+let veicInteracaoAteTs=0;
 const contabRevisaoPreparadaSessao={itau:false,mercadopago:false,dinheiro:false};
 let carregandoRevisaoAgora=false;
 let ultimaCargaRevisaoTs=0;
@@ -4521,6 +4520,15 @@ function marcarInteracaoContab(ms=15000){
 }
 function contabEmInteracao(){
   return Date.now()<contabInteracaoAteTs;
+}
+function marcarInteracaoVeiculos(ms=120000){
+  veicInteracaoAteTs=Date.now()+ms;
+}
+function veicEmInteracao(){
+  if(Date.now()<veicInteracaoAteTs)return true;
+  const ae=document.activeElement;
+  if(ae && ['INPUT','SELECT','TEXTAREA'].includes(ae.tagName||'') && ae.closest?.('#screen-veiculos'))return true;
+  return false;
 }
 function idsRevisaoExpandidos(){
   return [...document.querySelectorAll('#revisao-lista details.revisao-item[open][id^="rev-"]')]
@@ -4549,6 +4557,7 @@ async function refrescarTelaAtivaSilencioso(force=false){
     if(tela==='hospedaria' && typeof carregarHospedes==='function')return await carregarHospedes();
     if(tela==='dinheiro' && typeof carregarDinheiroVivo==='function')return await carregarDinheiroVivo();
     if(tela==='veiculos'){
+      if(veicEmInteracao())return;
       if(typeof renderVeiculos==='function')renderVeiculos();
       if(document.getElementById('sub-veiculos-hist')?.classList.contains('active') && typeof carregarVeicHist==='function')await carregarVeicHist();
       if(document.getElementById('sub-veiculos-obs')?.classList.contains('active') && typeof carregarVeicObs==='function')await carregarVeicObs();
@@ -4595,12 +4604,15 @@ window.addEventListener('focus',()=>{
 setInterval(()=>{ if(!document.hidden)refrescarTelaAtivaSilencioso(false); }, 30000);
 document.addEventListener('pointerdown',(ev)=>{
   if(ev.target?.closest?.('#screen-contab'))marcarInteracaoContab();
+  if(ev.target?.closest?.('#screen-veiculos'))marcarInteracaoVeiculos();
 },true);
 document.addEventListener('focusin',(ev)=>{
   if(ev.target?.closest?.('#screen-contab'))marcarInteracaoContab();
+  if(ev.target?.closest?.('#screen-veiculos'))marcarInteracaoVeiculos();
 });
 document.addEventListener('input',(ev)=>{
   if(ev.target?.closest?.('#screen-contab'))marcarInteracaoContab();
+  if(ev.target?.closest?.('#screen-veiculos'))marcarInteracaoVeiculos();
 });
 
 function abrirResumoHome(secao='saldo'){
@@ -5074,11 +5086,51 @@ function imagemVeiculo(nome){
   if(n.includes('van'))return './Imagens%20Carros/Van.png';
   return '';
 }
+function veicFmtDataBr(raw=''){
+  if(!raw)return '—';
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(raw)) ? fmtData(raw) : String(raw);
+}
+function veicObsSemMeta(raw=''){
+  return String(raw||'').replace(/\[chegada:([0-9]{4}-[0-9]{2}-[0-9]{2})\]\s*/i,'').trim();
+}
+function veicExtrairDataChegada(itemOuObs=''){
+  const bruto=typeof itemOuObs==='object' ? String(itemOuObs?.obs||'') : String(itemOuObs||'');
+  const m=bruto.match(/\[chegada:([0-9]{4}-[0-9]{2}-[0-9]{2})\]/i);
+  return m?.[1]||'';
+}
+function veicCombinarObs(obs='', dataChegada=''){
+  const limpo=veicObsSemMeta(obs);
+  const meta=dataChegada?`[chegada:${dataChegada}]`:'';
+  return [meta, limpo].filter(Boolean).join(' ').trim();
+}
+function todosMotoristasVeiculo(){
+  const mapa=new Map();
+  const add=(nome='',tipo='irmao',van=false)=>{
+    const nomeLimpo=String(nome||'').trim();
+    if(!nomeLimpo)return;
+    const chave=nomeLimpo.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+    const atual=mapa.get(chave)||{nome:nomeLimpo,tipo,van:false};
+    atual.nome=atual.nome||nomeLimpo;
+    atual.tipo=atual.tipo||tipo;
+    atual.van=!!(atual.van||van||tipo==='admin');
+    mapa.set(chave,atual);
+  };
+  (IRMAOS_DB||[]).forEach(i=>{
+    const tipo=String(i?.tipo||'').toLowerCase();
+    if(['admin','frei','novico','irmao'].includes(tipo))add(i?.nome||'',tipo,!!i?.van);
+  });
+  Object.values(CREDENCIAIS||{}).forEach(c=>{
+    const nome=String(c?.label||'').trim();
+    const tipo=String(c?.tipo||'').toLowerCase();
+    if(/^(Frei|Irmão)\s/i.test(nome))add(nome,tipo,tipo==='admin');
+  });
+  return [...mapa.values()].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+}
 function preencherFiltroVeiculosPainel(){
   const sel=document.getElementById('veic-painel-filtro');
   if(!sel)return;
   const atual=veicPainelFiltroId||'';
-  sel.innerHTML='<option value="">Todos os veículos</option>'+(VEICULOS_DATA||[]).map(v=>`<option value="${v.id}">${escapeHtml(corrigirNomeVeiculo(v.nome||'Veículo'))}</option>`).join('');
+  sel.innerHTML='<option value="">Selecione o veículo...</option>'+(VEICULOS_DATA||[]).map(v=>`<option value="${v.id}">${escapeHtml(corrigirNomeVeiculo(v.nome||'Veículo'))}</option>`).join('');
   sel.value=atual;
 }
 function preencherFiltroVeiculosManutencao(){
@@ -5146,7 +5198,7 @@ function renderVeiculos(){
   c.innerHTML='';
   c.classList.add('veh-galeria');
   preencherFiltroVeiculosPainel();
-  const motoristas=IRMAOS_DB.filter(i=>i.van!==undefined||i.tipo==='novico'||i.tipo==='frei');
+  const motoristas=todosMotoristasVeiculo();
   const statusHtml=renderResumoStatusVeiculos(VEICULOS_DATA||[]);
   if(!veicPainelFiltroId){
     c.innerHTML=statusHtml + `<div class="card"><div class="empty">Selecione um veículo no campo acima para abrir a saída ou registrar a chegada.</div></div>`;
@@ -5167,14 +5219,15 @@ function renderVeiculos(){
     if(uso){stCls='s-uso';badgeCls='b-uso';badgeTxt='Em uso';}
     else if(status.tipo==='manutencao'){stCls='s-manut';badgeCls='b-manut';badgeTxt='Manutenção';}
     else if(status.tipo==='conserto'){stCls='s-conserto';badgeCls='b-conserto';badgeTxt='Conserto';}
-    const motorOpts=motoristas.filter(i=>v.van?i.van:true).map(i=>`<option>${i.nome}</option>`).join('');
+    const motorOpts=motoristas.filter(i=>v.van?(i.van||i.tipo==='admin'||i.tipo==='frei'):true).map(i=>`<option>${i.nome}</option>`).join('');
     const div=document.createElement('div');
     div.className='veh-fcard '+stCls;
     div.id='vfc-'+v.id;
 
     let infoBlock='';
     if(uso){
-      infoBlock=`<div class="veh-fcard-uso">🚗 <strong>${uso.motorista}</strong> · saiu ${uso.saida} em ${uso.data}${uso.destino?` · 📍 ${uso.destino}`:''}${uso.obs?`<div style="margin-top:4px;font-style:italic">"${uso.obs}"</div>`:''}</div>`;
+      const obsUso=veicObsSemMeta(uso.obs||'');
+      infoBlock=`<div class="veh-fcard-uso">🚗 <strong>${uso.motorista}</strong> · saiu ${uso.saida} em ${veicFmtDataBr(uso.data)}${uso.destino?` · 📍 ${uso.destino}`:''}${obsUso?`<div style="margin-top:4px;font-style:italic">"${escapeHtml(obsUso)}"</div>`:''}</div>`;
     }else if(status.tipo==='manutencao'){
       infoBlock=`<div class="veh-fcard-info">🔧 <strong>Em manutenção</strong>${status.detalhe?` · ${status.detalhe}`:''}</div>`;
     }else if(status.tipo==='conserto'){
@@ -5186,6 +5239,7 @@ function renderVeiculos(){
     let actionsBlock='';
     if(uso){
       actionsBlock=`
+        <input class="veh-sel" id="chegada-data-${v.id}" type="date" value="${hojeISO()}">
         <select class="fuel-sel" id="fuel-${v.id}">
           <option value="">⛽ Nível de combustível ao chegar... (obrigatório)</option>
           ${FUEL_OPTS.map(o=>`<option value="${o.val}">${o.label}</option>`).join('')}
@@ -5258,7 +5312,7 @@ async function registrarSaida(vehId){
   // Se Outro, usa o campo livre
   showLoad(true);
   const {data}=await sb.from('viagens').insert({veiculo_id:vehId,veiculo_nome:corrigirNomeVeiculo(VEICULOS_DATA.find(v=>v.id===vehId)?.nome),motorista:mot,destino,saida:agora(),data:hojeISO(),obs,aberto:true}).select().single();
-  vehEmUso[vehId]={motorista:mot,saida:agora(),data:hoje(),destino,obs,db_id:data?.id};
+  vehEmUso[vehId]={motorista:mot,saida:agora(),data:hojeISO(),destino,obs,db_id:data?.id};
   showLoad(false);renderVeiculos();
   showToast('🚗 Saída: '+mot+' → '+destino);
 }
@@ -5266,9 +5320,10 @@ async function registrarChegada(vehId){
   const fuelEl=document.getElementById('fuel-'+vehId);
   const fuel=fuelEl?.value;
   if(!fuel){fuelEl?.classList.add('req');setTimeout(()=>fuelEl?.classList.remove('req'),2000);showToast('⚠️ Informe o combustível!');return;}
+  const dataChegada=document.getElementById(`chegada-data-${vehId}`)?.value||hojeISO();
   showLoad(true);
   const uso=vehEmUso[vehId];const hora=agora();
-  if(uso?.db_id)await sb.from('viagens').update({chegada:hora,aberto:false,combustivel:fuel}).eq('id',uso.db_id);
+  if(uso?.db_id)await sb.from('viagens').update({chegada:hora,aberto:false,combustivel:fuel,obs:veicCombinarObs(uso?.obs||'',dataChegada)}).eq('id',uso.db_id);
   await sb.from('veiculos').update({combustivel:fuel}).eq('id',vehId);
   const v=VEICULOS_DATA.find(x=>x.id===vehId);if(v)v.combustivel=fuel;
   delete vehEmUso[vehId];
@@ -5291,7 +5346,7 @@ function podeGerirHistoricoMotoristas(){
 let veicHistEditandoId='';
 function motoristasPermitidosVeiculo(veicId=''){
   const v=(VEICULOS_DATA||[]).find(item=>item.id===veicId)||{};
-  return IRMAOS_DB.filter(i=>v.van?i.van:true).filter(i=>i.van!==undefined||i.tipo==='novico'||i.tipo==='frei');
+  return todosMotoristasVeiculo().filter(i=>v.van?(i.van||i.tipo==='admin'||i.tipo==='frei'):true);
 }
 function getViagemEdicaoAtual(){
   return {
@@ -5299,6 +5354,7 @@ function getViagemEdicaoAtual(){
     veiculo_id:document.getElementById('veic-hm-veiculo')?.value||'',
     motorista:document.getElementById('veic-hm-motorista')?.value||'',
     data:document.getElementById('veic-hm-data')?.value||hojeISO(),
+    data_chegada:document.getElementById('veic-hm-data-chegada')?.value||document.getElementById('veic-hm-data')?.value||hojeISO(),
     destino:document.getElementById('veic-hm-destino')?.value||'',
     saida:document.getElementById('veic-hm-saida')?.value||'',
     chegada:document.getElementById('veic-hm-chegada')?.value||'',
@@ -5312,6 +5368,7 @@ function renderVeicHistForm(item=null){
   const edit=item||null;
   const veicId=edit?.veiculo_id||document.getElementById('veic-hm-veiculo')?.value||VEICULOS_DATA?.[0]?.id||'';
   const motoristas=motoristasPermitidosVeiculo(veicId);
+  const dataChegadaEdit=veicDate(edit?.data_chegada)||veicExtrairDataChegada(edit)||veicDate(edit?.data)||hojeISO();
   const veicOpts=(VEICULOS_DATA||[]).map(v=>`<option value="${v.id}" ${v.id===veicId?'selected':''}>${escapeHtml(corrigirNomeVeiculo(v.nome||'Veículo'))}</option>`).join('');
   const motOpts=(motoristas||[]).map(i=>`<option ${i.nome===String(edit?.motorista||'')?'selected':''}>${escapeHtml(i.nome)}</option>`).join('');
   c.innerHTML=`<div class="card" style="margin-bottom:12px">
@@ -5329,14 +5386,18 @@ function renderVeicHistForm(item=null){
     </div>
     <div class="frow">
       <div><label class="fl">Saída</label><input id="veic-hm-saida" class="fi" type="time" value="${edit?.saida||''}"></div>
+      <div><label class="fl">Data da chegada</label><input id="veic-hm-data-chegada" class="fi" type="date" value="${dataChegadaEdit}"></div>
+    </div>
+    <div class="frow">
       <div><label class="fl">Chegada</label><input id="veic-hm-chegada" class="fi" type="time" value="${edit?.chegada||''}"></div>
+      <div></div>
     </div>
     <div class="frow">
       <div><label class="fl">Combustível ao chegar</label><select id="veic-hm-comb" class="fi"><option value="">Não informar</option>${FUEL_OPTS.map(o=>`<option value="${o.val}" ${String(edit?.combustivel||'')===String(o.val)?'selected':''}>${o.label}</option>`).join('')}</select></div>
       <div><label class="fl">Status</label><select id="veic-hm-status" class="fi"><option value="aberto" ${!edit?.chegada?'selected':''}>Em aberto</option><option value="fechado" ${edit?.chegada?'selected':''}>Fechado</option></select></div>
     </div>
     <label class="fl">Observações</label>
-    <textarea id="veic-hm-obs" class="fi" rows="2" style="resize:none">${escapeHtml(edit?.obs||'')}</textarea>
+    <textarea id="veic-hm-obs" class="fi" rows="2" style="resize:none">${escapeHtml(veicObsSemMeta(edit?.obs||''))}</textarea>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
       <button type="button" class="btn btn-ouro" onclick="salvarViagemManualVeiculo()">${edit?'💾 Salvar edição':'✅ Registrar manualmente'}</button>
       ${edit?`<button type="button" class="btn btn-cinza" onclick="cancelarEdicaoViagemVeiculo()">Cancelar edição</button>`:''}
@@ -5365,7 +5426,7 @@ async function salvarViagemManualVeiculo(){
     saida:form.saida,
     chegada:status==='fechado'?(form.chegada||null):null,
     data:form.data,
-    obs:(form.obs||'').trim(),
+    obs:veicCombinarObs((form.obs||'').trim(), status==='fechado' ? (form.data_chegada||form.data) : ''),
     combustivel:form.combustivel||null,
     aberto:status!=='fechado'
   };
@@ -5380,7 +5441,7 @@ async function salvarViagemManualVeiculo(){
       : await sb.from('viagens').insert(payload).select().single();
     const dbId=salva?.id||veicHistEditandoId||'';
     if(payload.aberto){
-      vehEmUso[form.veiculo_id]={motorista:form.motorista,saida:form.saida,data:fmtData(form.data),destino:form.destino||'',obs:payload.obs,db_id:dbId};
+      vehEmUso[form.veiculo_id]={motorista:form.motorista,saida:form.saida,data:form.data,destino:form.destino||'',obs:payload.obs,db_id:dbId};
     }else{
       const usoAtual=vehEmUso[form.veiculo_id];
       if(usoAtual?.db_id===dbId || !veicHistEditandoId || !payload.aberto)delete vehEmUso[form.veiculo_id];
@@ -5428,12 +5489,13 @@ function renderVeicHistLista(lista){
         </div>
       </div>
       <div class="hv-times">
-        <span>📅 ${v.data}</span><span>🟢 ${v.saida}</span>
+        <span>📅 ${veicFmtDataBr(v.data)}</span><span>🟢 ${v.saida}</span>
         ${v.chegada?`<span>🏁 ${v.chegada}</span>`:'<span style="color:var(--fogo);font-weight:600">⏳ Em viagem</span>'}
+        ${v.chegada && veicExtrairDataChegada(v) && veicExtrairDataChegada(v)!==String(v.data||'')?`<span>📆 ${veicFmtDataBr(veicExtrairDataChegada(v))}</span>`:''}
         ${v.combustivel?`<span>${fuelInfo(v.combustivel).label}</span>`:''}
       </div>
       ${v.destino?`<div style="margin-top:4px;font-size:.73rem;color:var(--azul)">📍 ${v.destino}</div>`:''}
-      ${v.obs?`<div class="hv-obs">"${v.obs}"</div>`:''}
+      ${veicObsSemMeta(v.obs||'')?`<div class="hv-obs">"${escapeHtml(veicObsSemMeta(v.obs||''))}"</div>`:''}
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
         <button type="button" class="btn-sm bsc" style="font-weight:800" onclick="editarViagemVeiculo('${v.id}')">✏️ Editar este registro</button>
       </div>
@@ -5445,7 +5507,7 @@ function filtrarVeicHist(){
   const nt=norm(t);
   renderVeicHistLista((todosViagens||[]).filter(v=>{
     const okBusca=!nt || (norm(v.motorista||'').includes(nt)||norm(v.veiculo_nome||'').includes(nt)||norm(v.destino||'').includes(nt));
-    const okData=!dataRef || String(v.data||'')===dataRef;
+    const okData=!dataRef || String(v.data||'')===dataRef || veicExtrairDataChegada(v)===dataRef;
     return okBusca && okData;
   }));
 }
