@@ -5126,6 +5126,14 @@ function veicCombinarObs(obs='', dataChegada=''){
   const meta=dataChegada?`[chegada:${dataChegada}]`:'';
   return [meta, limpo].filter(Boolean).join(' ').trim();
 }
+function toggleChegadaOutroDia(vehId){
+  const wrap=document.getElementById(`chegada-data-wrap-${vehId}`);
+  const btn=document.getElementById(`chegada-data-btn-${vehId}`);
+  if(!wrap || !btn)return;
+  const aberto=wrap.style.display!=='none';
+  wrap.style.display=aberto?'none':'block';
+  btn.textContent=aberto?'🗓️ Chegada em outro dia':'✕ Voltar para chegada no mesmo dia';
+}
 function todosMotoristasVeiculo(){
   const mapa=new Map();
   const add=(nome='',tipo='irmao',van=false)=>{
@@ -5262,7 +5270,11 @@ function renderVeiculos(){
     let actionsBlock='';
     if(uso){
       actionsBlock=`
-        <input class="veh-sel" id="chegada-data-${v.id}" type="date" value="${hojeISO()}">
+        <button type="button" class="btn-sm bsc" id="chegada-data-btn-${v.id}" onclick="toggleChegadaOutroDia('${v.id}')">🗓️ Chegada em outro dia</button>
+        <div id="chegada-data-wrap-${v.id}" style="display:none">
+          <label class="fl first">Data da chegada</label>
+          <input class="veh-sel" id="chegada-data-${v.id}" type="date" value="${hojeISO()}">
+        </div>
         <select class="fuel-sel" id="fuel-${v.id}">
           <option value="">⛽ Nível de combustível ao chegar... (obrigatório)</option>
           ${FUEL_OPTS.map(o=>`<option value="${o.val}">${o.label}</option>`).join('')}
