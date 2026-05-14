@@ -15030,7 +15030,7 @@ carregarHistoricoCompras = async function(){
   if(!lotes.length){ c.innerHTML=`<div class="empty">Nenhuma compra registrada em ${labelMesDispensaV5(mesRef)}.</div>`; return; }
   c.innerHTML=lotes.map(lote=>{
     const podeExcluir=podeExcluirHistoricoDispensaV5(lote);
-    const fotos=(lote.nf_fotos||[]).map((foto,idx)=>{ const src=(foto?.dataUrl||foto||'').replace(/'/g,'&#39;'); return `<button type="button" class="btn-sm bsaz" onclick="abrirMidiaHistoricoDispensaV5('${src}')">${/^data:application\\/pdf/i.test(src)?'📄':'🖼️'} Nota ${idx+1}</button>`; }).join('');
+    const fotos=(lote.nf_fotos||[]).map((foto,idx)=>{ const src=(foto?.dataUrl||foto||'').replace(/'/g,'&#39;'); return `<button type="button" class="btn-sm bsaz" onclick="abrirMidiaHistoricoDispensaV5('${src}')">${/^data:application\/pdf/i.test(src)?'📄':'🖼️'} Nota ${idx+1}</button>`; }).join('');
     return `<details class="hist-compra">
       <summary style="list-style:none;cursor:pointer;display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
         <div><div class="hc-loja">${escapeHtml(lote.estabelecimento)}</div><div class="hc-data">📅 ${dataBrDispensaV5(lote.data)}</div></div>

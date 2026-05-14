@@ -1,0 +1,28 @@
+{
+  "name": "Convento Noviciado",
+  "short_name": "Convento",
+  "start_url": "./convento_final_ajustado_v2_codex.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F8F3EA",
+  "theme_color": "#3d2400",
+  "icons": [
+    {
+      "src": "./apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
