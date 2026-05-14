@@ -904,6 +904,20 @@ header p{font-size:.62rem;color:rgba(201,151,58,.65);margin-top:1px;}
   display:grid;
   gap:14px;
 }
+.dinheiro-flow-switch{
+  margin-bottom:12px;
+}
+.dinheiro-flow-block{
+  display:none;
+}
+.dinheiro-flow-block.active{
+  display:block;
+}
+.dinheiro-flow-hint{
+  margin-top:10px;
+  font-size:.79rem;
+  color:var(--cinza);
+}
 @media (min-width: 900px){
   .dinheiro-grid{
     grid-template-columns:minmax(0,1.15fr) minmax(320px,.85fr);
@@ -1938,7 +1952,7 @@ mark{background:#fff59d;border-radius:2px;}
       <span class="hcard-metric" id="hm-oficios"></span>
     </div>
     <div class="hcard size-md" onclick="ir('dispensa')">
-      <div class="icon">🥫</div><h3>Dispensa</h3><p>Cozinha e lavanderia</p>
+      <div class="icon">🥫</div><h3>Dispensa</h3><p>Estoque, compras e gastos da casa</p>
       <span class="badge-alerta" id="badge-dispensa" style="display:none">!</span>
       <span class="hcard-metric" id="hm-dispensa"></span>
     </div>
@@ -2098,64 +2112,120 @@ mark{background:#fff59d;border-radius:2px;}
 
 <!-- ══════ DINHEIRO EM ESPÉCIE ══════ -->
 <div id="screen-dinheiro" class="screen">
-  <div class="dinheiro-grid">
-    <div class="card">
-      <h3>💵 Compra paga em dinheiro</h3>
-      <p style="font-size:.79rem;color:var(--cinza);margin-bottom:10px">Use esta área quando algum irmão comprar algo com o dinheiro vivo da casa. O cupom fiscal já segue para a contabilidade como comprovante.</p>
-      <label class="fl first">Irmão responsável</label>
-      <select id="dinheiro-autor" class="fi"></select>
-      <div class="frow">
-        <div>
-          <label class="fl">Data da compra</label>
-          <input id="dinheiro-data" class="fi" type="date">
-        </div>
-        <div>
-          <label class="fl">Valor</label>
-          <input id="dinheiro-valor" class="fi" type="number" step="0.01" min="0" placeholder="0,00">
-        </div>
-      </div>
-      <label class="fl">Categoria</label>
-      <select id="dinheiro-categoria" class="fi" onchange="popularEstabelecimentosDinheiro();sugerirEstabelecimentoDinheiroPorDescricao()"></select>
-      <label class="fl">Estabelecimento / fornecedor</label>
-      <select id="dinheiro-estabelecimento" class="fi" onchange="toggleOutroEstabelecimentoDinheiro()"></select>
-      <input id="dinheiro-estabelecimento-outro" class="fi" type="text" placeholder="Digite o nome do estabelecimento" style="display:none;margin-top:8px">
-      <label class="fl">Descrição da compra</label>
-      <input id="dinheiro-descricao" class="fi" type="text" placeholder="Ex: Compra do mercado da semana" oninput="sugerirEstabelecimentoDinheiroPorDescricao()">
-      <label class="fl">Observação</label>
-      <input id="dinheiro-obs" class="fi" type="text" placeholder="Opcional">
-      <label class="fl">Cupom / nota fiscal</label>
-      <div class="foto-area" onclick="document.getElementById('dinheiro-comprovante').click()">
-        <input type="file" id="dinheiro-comprovante" accept="image/*,.pdf,application/pdf" capture="environment" onchange="prepararPreviewDinheiro(this)">
-        <div style="font-size:1.8rem;margin-bottom:4px">🧾</div>
-        <p style="font-size:.78rem;color:var(--cinza)">Fotografar ou anexar o cupom fiscal</p>
-      </div>
-      <img id="dinheiro-prev" class="foto-prev" alt="">
-      <div id="dinheiro-status" class="ai-status-bar"></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-        <button class="btn btn-ouro" onclick="salvarLancamentoDinheiro()">✅ Enviar para conferência</button>
-        <button class="btn btn-cinza" onclick="limparFormDinheiro()">🧹 Limpar</button>
-      </div>
-    </div>
-    <div>
-      <div class="card" style="margin-bottom:10px">
-        <h3>📒 Como isso entra na contabilidade</h3>
-        <div class="dinheiro-note">
-          <strong>Fluxo do dinheiro em espécie</strong>
-          O lançamento entra na contabilidade como banco <b>Dinheiro</b>, com o cupom fiscal anexado. Depois você confere, ajusta a categoria se precisar e envia para a planilha oficial do dinheiro.
-        </div>
-        <div id="dinheiro-admin-tools" class="dinheiro-note admin-only" style="display:none;margin-top:10px">
-          <strong>Limpeza do caixa dinheiro</strong>
-          Use isso só para apagar lançamentos de teste do caixa em espécie.
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-            <button type="button" class="btn btn-cinza" onclick="zerarDinheiroMesAtual()">🧹 Zerar mês atual</button>
-            <button type="button" class="btn btn-fogo" onclick="zerarDinheiroTudo()">🗑️ Zerar todo o histórico</button>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="stab('dinheiro','lancamento',this)">🧾 Lançamento</button>
+    <button class="tab-btn" onclick="stab('dinheiro','historico',this);carregarDinheiroVivo()">🕘 Histórico</button>
+  </div>
+  <div id="sub-dinheiro-lancamento" class="screen active" style="padding:12px 0 0">
+    <div class="dinheiro-grid">
+      <div>
+        <div class="card">
+          <h3>💳 Forma de pagamento</h3>
+          <p style="font-size:.79rem;color:var(--cinza);margin-bottom:10px">Selecione primeiro como foi feito o pagamento. Depois o app abre só o fluxo correspondente.</p>
+          <div class="dinheiro-flow-switch">
+            <label class="fl first">Como foi pago?</label>
+            <select id="dinheiro-forma" class="fi" onchange="toggleFluxoDinheiro()">
+              <option value="">Selecione a forma de pagamento...</option>
+              <option value="especie">💵 Dinheiro em espécie</option>
+              <option value="pix">📲 Pix</option>
+            </select>
+            <div id="dinheiro-flow-hint" class="dinheiro-flow-hint">Escolha uma opção acima para começar o lançamento.</div>
+          </div>
+          <div id="dinheiro-bloco-especie" class="dinheiro-flow-block">
+            <h3>💵 Compra paga em dinheiro</h3>
+            <p style="font-size:.79rem;color:var(--cinza);margin-bottom:10px">Use esta área quando algum irmão comprar algo com o dinheiro vivo da casa. O cupom fiscal já segue para a contabilidade como comprovante.</p>
+            <label class="fl first">Irmão responsável</label>
+            <select id="dinheiro-autor" class="fi"></select>
+            <div class="frow">
+              <div>
+                <label class="fl">Data da compra</label>
+                <input id="dinheiro-data" class="fi" type="date">
+              </div>
+              <div>
+                <label class="fl">Valor</label>
+                <input id="dinheiro-valor" class="fi" type="number" step="0.01" min="0" placeholder="0,00">
+              </div>
+            </div>
+            <label class="fl">Categoria</label>
+            <select id="dinheiro-categoria" class="fi" onchange="popularEstabelecimentosDinheiro();sugerirEstabelecimentoDinheiroPorDescricao()"></select>
+            <label class="fl">Estabelecimento / fornecedor</label>
+            <select id="dinheiro-estabelecimento" class="fi" onchange="toggleOutroEstabelecimentoDinheiro()"></select>
+            <input id="dinheiro-estabelecimento-outro" class="fi" type="text" placeholder="Digite o nome do estabelecimento" style="display:none;margin-top:8px">
+            <label class="fl">Descrição da compra</label>
+            <input id="dinheiro-descricao" class="fi" type="text" placeholder="Ex: Compra do mercado da semana" oninput="sugerirEstabelecimentoDinheiroPorDescricao()">
+            <label class="fl">Observação</label>
+            <input id="dinheiro-obs" class="fi" type="text" placeholder="Opcional">
+            <label class="fl">Cupom / nota fiscal</label>
+            <div class="foto-area" onclick="document.getElementById('dinheiro-comprovante').click()">
+              <input type="file" id="dinheiro-comprovante" accept="image/*,.pdf,application/pdf" capture="environment" onchange="prepararPreviewDinheiro(this)">
+              <div style="font-size:1.8rem;margin-bottom:4px">🧾</div>
+              <p style="font-size:.78rem;color:var(--cinza)">Fotografar ou anexar o cupom fiscal</p>
+            </div>
+            <img id="dinheiro-prev" class="foto-prev" alt="">
+            <div id="dinheiro-status" class="ai-status-bar"></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+              <button class="btn btn-ouro" onclick="salvarLancamentoDinheiro()">✅ Enviar para conferência</button>
+              <button class="btn btn-cinza" onclick="limparFormDinheiro()">🧹 Limpar</button>
+            </div>
+          </div>
+          <div id="dinheiro-bloco-pix" class="dinheiro-flow-block">
+            <h3>💸 Comprovante de Pix</h3>
+            <p style="font-size:.79rem;color:var(--cinza);margin-bottom:10px">Registre aqui cada Pix pago no celular. Esse comprovante poderá ser vinculado depois na revisão contábil.</p>
+            <label class="fl first">Banco do Pix</label>
+            <select id="pix-banco" class="fi">
+              <option value="mercadopago" selected>Mercado Pago</option>
+            </select>
+            <div class="frow">
+              <div>
+                <label class="fl">Data do Pix</label>
+                <input type="date" id="pix-data" class="fi">
+              </div>
+              <div>
+                <label class="fl">Valor (R$)</label>
+                <input type="number" id="pix-valor" class="fi" step="0.01" placeholder="0,00">
+              </div>
+            </div>
+            <label class="fl">Para quem / Motivo</label>
+            <input type="text" id="pix-motivo" class="fi" placeholder="Ex: Frei Wesley — almoço na rua, Mercado Bom Preço...">
+            <label class="fl">Foto do comprovante (opcional)</label>
+            <div class="foto-area" onclick="document.getElementById('pix-foto').click()">
+              <input type="file" id="pix-foto" accept="image/*" capture="environment" onchange="previewPixFoto(this)">
+              <div style="font-size:1.8rem;margin-bottom:4px">📸</div>
+              <p style="font-size:.78rem;color:var(--cinza)">Toque para fotografar o comprovante</p>
+            </div>
+            <img id="pix-foto-prev" class="foto-prev" alt="" style="display:none">
+            <div id="pix-status" class="ai-status-bar" style="display:none"></div>
+            <button class="btn btn-ouro" onclick="enviarComprovantePix()">✅ Registrar</button>
           </div>
         </div>
       </div>
-      <div class="card">
-        <h3>🕘 Últimos lançamentos do mês</h3>
-        <div id="dinheiro-lista"><div class="empty">Carregando...</div></div>
+      <div>
+        <div class="card" style="margin-bottom:10px">
+          <h3>📒 Como isso entra na contabilidade</h3>
+          <div id="dinheiro-note-especie" class="dinheiro-note">
+            <strong>Fluxo do dinheiro em espécie</strong>
+            O lançamento entra na contabilidade como banco <b>Dinheiro</b>, com o cupom fiscal anexado. Depois você confere, ajusta a categoria se precisar e envia para a planilha oficial do dinheiro.
+          </div>
+          <div id="dinheiro-note-pix" class="dinheiro-note" style="display:none">
+            <strong>Fluxo do Pix</strong>
+            O comprovante de Pix fica registrado para depois ser localizado e vinculado na revisão contábil do banco correspondente, normalmente o <b>Mercado Pago</b>.
+          </div>
+          <div id="dinheiro-admin-tools" class="dinheiro-note admin-only" style="display:none;margin-top:10px">
+            <strong>Limpeza do caixa dinheiro</strong>
+            Use isso só para apagar lançamentos de teste do caixa em espécie.
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+              <button type="button" class="btn btn-cinza" onclick="zerarDinheiroMesAtual()">🧹 Zerar mês atual</button>
+              <button type="button" class="btn btn-fogo" onclick="zerarDinheiroTudo()">🗑️ Zerar todo o histórico</button>
+            </div>
+          </div>
+        </div>
       </div>
+    </div>
+  </div>
+  <div id="sub-dinheiro-historico" class="screen" style="padding:12px 0 0">
+    <div class="card">
+      <h3>🕘 Últimos lançamentos do mês</h3>
+      <div id="dinheiro-lista"><div class="empty">Carregando...</div></div>
     </div>
   </div>
 </div>
@@ -2248,39 +2318,49 @@ mark{background:#fff59d;border-radius:2px;}
 
 <!-- ══════ DISPENSA ══════ -->
 <div id="screen-dispensa" class="screen">
-  <div class="tabs">
-    <button class="tab-btn active" onclick="stab('dispensa','cozinha',this);carregarDispensa('cozinha')">🍽️ Cozinha</button>
-    <button class="tab-btn" onclick="stab('dispensa','lavanderia',this);carregarDispensa('lavanderia')">🧺 Lavanderia</button>
-    <button class="tab-btn" onclick="stab('dispensa','lista',this);carregarListaCompras()">🛒 Lista</button>
-    <button class="tab-btn" onclick="stab('dispensa','compras',this);carregarListaCompras();carregarHistoricoCompras()">📸 NF e Gastos</button>
+  <div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+    <button class="btn btn-cinza" style="margin:0" onclick="abrirListaComprasDispensa()">🛒 Lista de compras</button>
+    <button class="btn btn-cinza" style="margin:0" onclick="abrirHistoricoGastosDispensa()">📊 Histórico de gastos</button>
+    <button class="btn btn-ouro" style="margin:0" onclick="abrirLancamentoCompraDispensa()">➕ Lançar compra</button>
   </div>
   <div id="sub-dispensa-cozinha" class="screen active" style="padding:12px 0 0">
-    <p style="font-size:.79rem;color:var(--cinza);margin-bottom:10px">Veja o que tem agora e ajuste a quantidade conforme o uso do dia.</p>
-    <div id="disp-resumo-cozinha" style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap"></div>
-    <button class="btn btn-ouro" onclick="abrirModalAddDispensa('cozinha')" style="margin-bottom:10px;margin-top:0">➕ Adicionar Item</button>
-    <button class="btn btn-cinza" onclick="abrirNFDispensa('cozinha')" style="margin-bottom:10px;margin-top:0">📸 Lançar nota fiscal</button>
-    <div id="disp-cozinha-lista"><div class="empty">Carregando...</div></div>
+    <div class="card">
+      <h3>🥫 Dispensa</h3>
+      <p style="font-size:.79rem;color:var(--cinza);margin-bottom:12px">Controle interno de estoque, lista de compras e histórico de gastos da casa.</p>
+      <div id="dispensa-cards-home" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px">
+        <div class="empty">Carregando...</div>
+      </div>
+    </div>
   </div>
   <div id="sub-dispensa-lavanderia" class="screen" style="padding:12px 0 0">
-    <p style="font-size:.79rem;color:var(--cinza);margin-bottom:10px">Itens de limpeza, lavanderia e apoio da casa.</p>
-    <div id="disp-resumo-lavanderia" style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap"></div>
-    <button class="btn btn-ouro" onclick="abrirModalAddDispensa('lavanderia')" style="margin-bottom:10px;margin-top:0">➕ Adicionar Item</button>
-    <button class="btn btn-cinza" onclick="abrirNFDispensa('lavanderia')" style="margin-bottom:10px;margin-top:0">📸 Lançar nota fiscal</button>
-    <div id="disp-lavanderia-lista"><div class="empty">Carregando...</div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      <button class="btn btn-cinza" style="margin:0" onclick="abrirDispensaHome()">← Voltar</button>
+      <button class="btn btn-ouro" style="margin:0" onclick="abrirLancamentoCompraDispensa()">➕ Lançar compra</button>
+    </div>
+    <div class="card">
+      <div id="disp-local-info"></div>
+      <div id="disp-local-lista"><div class="empty">Selecione um local.</div></div>
+    </div>
   </div>
   <div id="sub-dispensa-lista" class="screen" style="padding:12px 0 0">
-    <p style="font-size:.79rem;color:var(--cinza);margin-bottom:10px">Aqui fica a lista única de compras da casa, juntando cozinha e lavanderia em um só lugar.</p>
-    <div id="lista-compras-disp"><div class="empty">Carregando...</div></div>
-    <button class="btn btn-cinza" onclick="addItemCompraManual()">➕ Adicionar item extra</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      <button class="btn btn-cinza" style="margin:0" onclick="abrirDispensaHome()">← Voltar</button>
+      <button class="btn btn-cinza" style="margin:0" onclick="compartilharListaComprasDispensa()">📤 Compartilhar lista</button>
+      <button class="btn btn-ouro" style="margin:0" onclick="confirmarCompradosDispensa()">✅ Confirmar comprados</button>
+    </div>
+    <div class="card">
+      <h3>🛒 Lista de compras</h3>
+      <p style="font-size:.79rem;color:var(--cinza);margin-bottom:10px">Itens zerados da casa, agrupados por local, com sugestão baseada no consumo do mês anterior.</p>
+      <div id="lista-compras-disp"><div class="empty">Carregando...</div></div>
+    </div>
   </div>
   <div id="sub-dispensa-compras" class="screen" style="padding:12px 0 0">
-    <div class="card" style="margin-bottom:10px">
-      <h3>🏪 Controle por estabelecimento</h3>
-      <div id="disp-estabelecimentos"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      <button class="btn btn-cinza" style="margin:0" onclick="abrirDispensaHome()">← Voltar</button>
     </div>
-    <p style="font-size:.79rem;color:var(--cinza);margin-bottom:10px">Use esta área para ler a nota fiscal, revisar os itens e acompanhar os gastos por estabelecimento.</p>
-    <div class="card">
-      <h3>📸 Atualizar Dispensa via NF</h3>
+    <div class="card" style="margin-bottom:12px">
+      <h3>➕ Lançar compra</h3>
+      <p style="font-size:.79rem;color:var(--cinza);margin-bottom:10px">Informe o estabelecimento, a data, o valor total e, se quiser, fotografe a nota para a IA sugerir os itens e locais.</p>
       <label class="fl first">Estabelecimento</label>
       <select id="disp-estabelecimento" class="fi" onchange="toggleOutroEstabelecimento()">
         <option value="Scoton">Scoton</option>
@@ -2291,23 +2371,13 @@ mark{background:#fff59d;border-radius:2px;}
         <option value="Outros">Outros</option>
       </select>
       <input type="text" id="disp-estabelecimento-outro" class="fi" placeholder="Digite o nome do estabelecimento" style="display:none;margin-top:8px">
-      <label class="fl">Quem paga</label>
-      <select id="disp-pagador" class="fi" onchange="toggleFormaPagamentoDispensa('nf')">
-        <option value="">Selecione...</option>
-        <option value="casa">Casa</option>
-        <option value="paroquia">Paróquia (faturado)</option>
-      </select>
-      <div id="disp-forma-casa-wrap" style="display:none">
-        <label class="fl">Como a casa paga</label>
-        <select id="disp-forma-pagamento" class="fi">
-          <option value="">Selecione...</option>
-          <option value="pix">Pix</option>
-          <option value="cartao">Cartão</option>
-          <option value="dinheiro">Dinheiro vivo</option>
-        </select>
+      <div class="frow">
+        <div><label class="fl">Data da compra</label><input type="date" id="disp-data-compra" class="fi"></div>
+        <div><label class="fl">Valor total pago</label><input type="number" id="disp-valor-total" class="fi" step="0.01" placeholder="0,00"></div>
       </div>
-      <p style="font-size:.74rem;color:var(--cinza);margin:6px 0 10px">Toda compra entra no gasto do estabelecimento. Se for Paróquia, entra como faturado. Se for Casa, escolha Pix, Cartão ou Dinheiro vivo.</p>
-      <p style="font-size:.79rem;color:var(--cinza);margin-bottom:10px">Fotografe a nota fiscal. Você poderá editar nome genérico, preço e destino antes de confirmar.</p>
+      <label class="fl">Observação (opcional)</label>
+      <input type="text" id="disp-obs-compra" class="fi" placeholder="Ex: reposição de frutas do fim de semana">
+      <p style="font-size:.79rem;color:var(--cinza);margin-bottom:10px">A foto ou PDF da nota é opcional, mas ajuda a IA a montar a lista de itens. Você poderá corrigir tudo antes de confirmar.</p>
       <div class="foto-area" onclick="document.getElementById('disp-nf-foto').click()">
         <input type="file" id="disp-nf-foto" accept="image/*,.pdf,application/pdf" capture="environment" multiple onchange="lerNFDispensa(this)">
         <div style="font-size:1.8rem;margin-bottom:4px">📸</div>
@@ -2319,8 +2389,15 @@ mark{background:#fff59d;border-radius:2px;}
       <button class="btn btn-cinza" style="margin-top:0" onclick="adicionarLinhaManualNF()">➕ Adicionar item manualmente</button>
       <button class="btn btn-ouro" id="disp-nf-confirmar" style="display:none" onclick="confirmarNFDispensa()">✅ Confirmar e Atualizar Dispensa</button>
     </div>
-    <div class="sec-title">📋 Histórico do mês</div>
-    <div id="disp-historico-lista"><div class="empty">Carregando...</div></div>
+    <div class="card">
+      <h3>📊 Histórico de gastos</h3>
+      <div class="frow">
+        <div><label class="fl first">Mês do histórico</label><select id="disp-hist-mes" class="fi" onchange="carregarHistoricoCompras()"></select></div>
+        <div><label class="fl first">Total do mês</label><div id="disp-total-mes" class="fi" style="display:flex;align-items:center;font-weight:800;color:var(--verde)">R$ 0,00</div></div>
+      </div>
+      <canvas id="disp-hist-chart" height="180" style="margin-top:8px"></canvas>
+      <div id="disp-historico-lista" style="margin-top:12px"><div class="empty">Carregando...</div></div>
+    </div>
   </div>
 </div>
 
@@ -3861,6 +3938,324 @@ function salvarListaComprovantesMeta(id, lista=[]){
     patch.comprovante_nome='';
   }
   return salvarMetaContab(id,patch);
+}
+let resultadosBuscaPixMp={};
+function getBuscaPixMp(id){
+  return Array.isArray(resultadosBuscaPixMp?.[id]) ? resultadosBuscaPixMp[id] : [];
+}
+function setBuscaPixMp(id, lista=[]){
+  resultadosBuscaPixMp=resultadosBuscaPixMp||{};
+  if(lista?.length)resultadosBuscaPixMp[id]=lista;
+  else delete resultadosBuscaPixMp[id];
+}
+function resetFormPixMp(){
+  const ids=['pix-data','pix-valor','pix-motivo','pix-foto'];
+  ids.forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.value='';
+  });
+  const banco=document.getElementById('pix-banco');
+  if(banco)banco.value='mercadopago';
+  const prev=document.getElementById('pix-foto-prev');
+  if(prev){
+    prev.src='';
+    prev.style.display='none';
+  }
+  const st=document.getElementById('pix-status');
+  if(st){
+    st.textContent='';
+    st.style.display='none';
+    st.className='ai-status-bar';
+  }
+}
+function toggleFluxoDinheiro(forceValue=''){
+  const sel=document.getElementById('dinheiro-forma');
+  if(sel && forceValue)sel.value=forceValue;
+  const atual=String(sel?.value||'').trim();
+  const blocoEspecie=document.getElementById('dinheiro-bloco-especie');
+  const blocoPix=document.getElementById('dinheiro-bloco-pix');
+  const noteEspecie=document.getElementById('dinheiro-note-especie');
+  const notePix=document.getElementById('dinheiro-note-pix');
+  const hint=document.getElementById('dinheiro-flow-hint');
+  if(blocoEspecie)blocoEspecie.classList.toggle('active', atual==='especie');
+  if(blocoPix)blocoPix.classList.toggle('active', atual==='pix');
+  if(noteEspecie)noteEspecie.style.display=atual==='especie' ? '' : 'none';
+  if(notePix)notePix.style.display=atual==='pix' ? '' : 'none';
+  if(hint){
+    hint.textContent=atual==='especie'
+      ? 'Preencha a compra em espécie e envie para a conferência.'
+      : atual==='pix'
+        ? 'Registre o Pix e depois vincule esse comprovante na revisão contábil.'
+        : 'Escolha uma opção acima para começar o lançamento.';
+  }
+}
+function previewPixFoto(input){
+  const file=input?.files?.[0];
+  const prev=document.getElementById('pix-foto-prev');
+  const st=document.getElementById('pix-status');
+  if(!file){
+    if(prev){
+      prev.src='';
+      prev.style.display='none';
+    }
+    if(st){
+      st.textContent='';
+      st.style.display='none';
+    }
+    return;
+  }
+  if(st){
+    st.style.display='block';
+    st.className='ai-status-bar ai-load';
+    st.textContent='Preparando imagem do comprovante...';
+  }
+  dataUrlFromFile(file).then(src=>{
+    if(prev){
+      prev.src=src;
+      prev.style.display='block';
+    }
+    if(st){
+      st.className='ai-status-bar';
+      st.textContent='✅ Comprovante pronto para envio.';
+    }
+  }).catch(err=>{
+    console.error('[previewPixFoto]', err);
+    if(prev){
+      prev.src='';
+      prev.style.display='none';
+    }
+    if(st){
+      st.className='ai-status-bar';
+      st.style.background='var(--verm-pale)';
+      st.style.color='var(--verm)';
+      st.textContent='⚠️ Não foi possível preparar a foto.';
+    }
+  });
+}
+function lancamentoMercadoPagoElegivelPix(e, meta={}){
+  const banco=meta.banco||inferirBancoRegistro(e);
+  if(banco!=='mercadopago')return false;
+  if(String(e.tipo||'')!=='despesa')return false;
+  const subtipo=String(meta.subtipo||'').toLowerCase();
+  return ['pix_enviado','pagamento_qr','pagamento'].includes(subtipo);
+}
+function toIsoDateSafe(val){
+  if(!val)return '';
+  if(/^\d{4}-\d{2}-\d{2}$/.test(String(val)))return String(val);
+  try{
+    const dt=new Date(val);
+    if(!Number.isNaN(dt.getTime()))return dt.toISOString().slice(0,10);
+  }catch(_e){}
+  return '';
+}
+function addDaysIso(iso, delta){
+  const dt=new Date(`${iso}T12:00:00`);
+  dt.setDate(dt.getDate()+delta);
+  return dt.toISOString().slice(0,10);
+}
+function valorAbsLancamentoContab(id){
+  const input=document.getElementById(`rev-valor-${id}`);
+  return Math.abs(parseFloat(input?.value||0)||0);
+}
+function dataLancamentoContab(id){
+  return document.getElementById(`rev-pag-${id}`)?.value
+    || document.getElementById(`rev-comp-${id}`)?.value
+    || '';
+}
+function renderResultadosBuscaPixMp(id){
+  const wrap=document.getElementById(`rev-pix-link-${id}`);
+  if(!wrap)return;
+  const lista=getBuscaPixMp(id);
+  if(!lista.length){
+    wrap.innerHTML='<div style="font-size:.74rem;color:var(--cinza);margin-top:6px">Nenhum comprovante Pix pendente encontrado para este valor/data.</div>';
+    return;
+  }
+  wrap.innerHTML=`<div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+    ${lista.map(item=>`
+      <div style="border:1px solid #eadfca;border-radius:12px;padding:10px;background:#fffaf2">
+        <div class="stat-row"><span class="sl">${escapeHtml(fmtData(item.data_pix)||item.data_pix||'Sem data')} · ${fmt(item.valor||0)}</span><button type="button" class="btn-sm bsv" onclick="vincularComprovantePixMercadoPago('${id}','${item.id}')">Vincular</button></div>
+        <div style="font-size:.74rem;color:var(--cinza);margin-top:4px">${escapeHtml(item.motivo||'Sem motivo')}</div>
+        ${item.foto_nome?`<div style="font-size:.72rem;color:#1565C0;margin-top:4px">📎 ${escapeHtml(item.foto_nome)}</div>`:''}
+      </div>`).join('')}
+  </div>`;
+}
+async function buscarComprovantePixMercadoPago(id){
+  try{
+    const valor=valorAbsLancamentoContab(id);
+    const dataRef=toIsoDateSafe(dataLancamentoContab(id));
+    if(!valor || !dataRef){
+      showToast('⚠️ Salve/ajuste data e valor do lançamento antes de buscar o comprovante Pix.');
+      return;
+    }
+    const ini=addDaysIso(dataRef,-1);
+    const fim=addDaysIso(dataRef,1);
+    const {data,error}=await sb.from('comprovantes_pix_mp')
+      .select('*')
+      .eq('status','pendente')
+      .gte('data_pix',ini)
+      .lte('data_pix',fim)
+      .order('data_pix',{ascending:false})
+      .limit(30);
+    if(error)throw error;
+    const lista=(data||[]).filter(item=>Math.abs((parseFloat(item.valor||0)||0)-valor)<=0.01);
+    setBuscaPixMp(id,lista);
+    renderResultadosBuscaPixMp(id);
+    showToast(lista.length?`✅ ${lista.length} comprovante(s) Pix encontrado(s).`:'ℹ️ Nenhum comprovante Pix compatível foi encontrado.');
+  }catch(err){
+    console.error('[buscarComprovantePixMercadoPago]', err);
+    const wrap=document.getElementById(`rev-pix-link-${id}`);
+    if(wrap)wrap.innerHTML='<div style="font-size:.74rem;color:#b42318;margin-top:6px">Não foi possível buscar os comprovantes Pix agora.</div>';
+    showToast('⚠️ Não foi possível buscar comprovantes Pix agora.');
+  }
+}
+async function vincularComprovantePixMercadoPago(id, comprovId){
+  try{
+    const lista=getBuscaPixMp(id);
+    const comp=lista.find(item=>String(item.id)===String(comprovId));
+    if(!comp){
+      showToast('⚠️ Comprovante Pix não encontrado nesta lista.');
+      return;
+    }
+    const {error}=await sb.from('comprovantes_pix_mp').update({status:'vinculado',lancamento_id:id}).eq('id',comprovId);
+    if(error)throw error;
+    const obsEl=document.getElementById(`rev-obs-${id}`);
+    const obsAtual=String(obsEl?.value||'').trim();
+    const novaLinha=`Pix MP: ${comp.motivo||'Comprovante vinculado'}`;
+    const obsNovo=obsAtual && !obsAtual.includes(novaLinha) ? `${obsAtual} · ${novaLinha}` : (obsAtual||novaLinha);
+    if(obsEl)obsEl.value=obsNovo;
+    const anexos=listaComprovantesMeta(metaContab(id));
+    const fotoNome=comp.foto_nome||`Comprovante Pix ${fmtData(comp.data_pix)||comp.data_pix||''}`.trim();
+    if(comp.foto_url && !anexos.some(item=>item.src===comp.foto_url)){
+      salvarListaComprovantesMeta(id,[...anexos,{src:comp.foto_url,nome:fotoNome,tipo:/\.pdf$/i.test(fotoNome)?'pdf':'arquivo'}]);
+    }
+    const atual=metaContab(id);
+    salvarMetaContab(id,{
+      ...atual,
+      comprovante_status:'anexado',
+      comprovante_pix_id:comp.id,
+      comprovante_pix_motivo:comp.motivo||'',
+      comprovante_motivo:'',
+      pix_mp_vinculado_em:new Date().toISOString()
+    });
+    await sb.from('contabilidade').update({obs:obsNovo}).eq('id',id);
+    setBuscaPixMp(id,[]);
+    renderResultadosBuscaPixMp(id);
+    atualizarAreaComprovantesContab(id);
+    if(typeof carregarRevisao==='function')await carregarRevisao();
+    showToast('✅ Comprovante Pix vinculado ao lançamento.');
+  }catch(err){
+    console.error('[vincularComprovantePixMercadoPago]', err);
+    showToast('⚠️ Não foi possível vincular este comprovante Pix agora.');
+  }
+}
+function abrirLeituraNFComIAContab(id){
+  document.getElementById(`rev-nf-ia-${id}`)?.click();
+}
+async function lerNFComIAContab(id,input){
+  const file=input?.files?.[0];
+  if(!file)return;
+  try{
+    if(typeof marcarInteracaoContab==='function')marcarInteracaoContab(60000);
+    showToast('📸 Lendo NF com IA...');
+    const dataUrl=await dataUrlFromFile(file);
+    const base64=String(dataUrl).split(',')[1]||'';
+    const mediaType=file.type==='application/pdf'?'application/pdf':(file.type||'image/jpeg');
+    const primeiraParte=file.type==='application/pdf'
+      ? {type:'document',source:{type:'base64',media_type:'application/pdf',data:base64}}
+      : {type:'image',source:{type:'base64',media_type:mediaType,data:base64}};
+    const prompt=`Analise este documento (foto de nota fiscal, cupom fiscal, ticket ou comprovante de compra brasileiro).
+Extraia os dados disponíveis e retorne SOMENTE um JSON, sem markdown, sem texto adicional:
+{"cnpj":"","razao_social":"","data_emissao":"YYYY-MM-DD","valor_total":0.00,"numero_nf":"","tipo_documento":"nf | cupom | ticket | comprovante_pix | outro"}
+Se um campo não existir no documento, retorne string vazia ou 0. Nunca invente dados.`;
+    const resp=await fetch('https://winter-boat-2928.wesleyutrou98.workers.dev',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-haiku-4-5-20251001',
+        max_tokens:1200,
+        messages:[{role:'user',content:[primeiraParte,{type:'text',text:prompt}]}]
+      })
+    });
+    const data=await resp.json();
+    const texto=(data.content||[]).map(i=>i.text||'').join('').replace(/```json|```/g,'').trim();
+    const nf=JSON.parse(texto||'{}');
+    const clienteEl=document.getElementById(`rev-cliente-${id}`);
+    const cnpjEl=document.getElementById(`rev-cnpj-${id}`);
+    const compEl=document.getElementById(`rev-comp-${id}`);
+    const pagEl=document.getElementById(`rev-pag-${id}`);
+    const obsEl=document.getElementById(`rev-obs-${id}`);
+    if(clienteEl && nf.razao_social && !String(clienteEl.value||'').trim())clienteEl.value=String(nf.razao_social).trim();
+    if(cnpjEl && nf.cnpj && !String(cnpjEl.value||'').trim())cnpjEl.value=String(nf.cnpj).trim();
+    if(compEl && nf.data_emissao && /^\d{4}-\d{2}-\d{2}$/.test(String(nf.data_emissao)))compEl.value=String(nf.data_emissao);
+    if(pagEl && nf.data_emissao && /^\d{4}-\d{2}-\d{2}$/.test(String(nf.data_emissao)))pagEl.value=String(nf.data_emissao);
+    if(obsEl){
+      const add=[nf.tipo_documento?`Documento IA: ${nf.tipo_documento}`:'', nf.numero_nf?`NF ${nf.numero_nf}`:''].filter(Boolean).join(' · ');
+      if(add && !String(obsEl.value||'').includes(add))obsEl.value=(String(obsEl.value||'').trim()?`${String(obsEl.value||'').trim()} · ${add}`:add);
+    }
+    const anexos=listaComprovantesMeta(metaContab(id));
+    salvarListaComprovantesMeta(id,[...anexos,{src:dataUrl,nome:file.name,tipo:file.type==='application/pdf'?'pdf':'arquivo'}]);
+    const atual=metaContab(id);
+    salvarMetaContab(id,{...atual,comprovante_status:'anexado',tipo_documento_nf_ia:nf.tipo_documento||'',numero_nf_ia:nf.numero_nf||''});
+    atualizarAreaComprovantesContab(id);
+    showToast('✅ NF lida com IA e comprovante anexado.');
+  }catch(err){
+    console.error('[lerNFComIAContab]', err);
+    showToast('⚠️ Não foi possível ler esta NF com IA agora.');
+  }finally{
+    if(input)input.value='';
+  }
+}
+async function enviarComprovantePix(){
+  const data=document.getElementById('pix-data')?.value||'';
+  const valor=parseFloat(document.getElementById('pix-valor')?.value||0)||0;
+  const motivo=String(document.getElementById('pix-motivo')?.value||'').trim();
+  const foto=document.getElementById('pix-foto')?.files?.[0]||null;
+  const st=document.getElementById('pix-status');
+  if(!data || !valor || !motivo){
+    showToast('⚠️ Preencha data, valor e motivo.');
+    return;
+  }
+  try{
+    if(st){
+      st.style.display='block';
+      st.className='ai-status-bar ai-load';
+      st.textContent='Enviando comprovante Pix...';
+    }
+    let foto_url=null, foto_nome=null;
+    if(foto){
+      const path=`pix_mp/${Date.now()}_${String(foto.name||'comprovante').replace(/[^\w.\-]+/g,'_')}`;
+      const {error:upErr}=await sb.storage.from('comprovantes').upload(path,foto,{upsert:true});
+      if(!upErr){
+        foto_url=sb.storage.from('comprovantes').getPublicUrl(path).data.publicUrl;
+        foto_nome=foto.name;
+      }
+    }
+    const {error}=await sb.from('comprovantes_pix_mp').insert({
+      data_pix:data,
+      valor,
+      motivo,
+      foto_url,
+      foto_nome,
+      status:'pendente'
+    });
+    if(error)throw error;
+    if(st){
+      st.className='ai-status-bar';
+      st.textContent='✅ Comprovante Pix registrado.';
+    }
+    showToast('✅ Comprovante Pix registrado!');
+    resetFormPixMp();
+  }catch(err){
+    console.error('[enviarComprovantePix]', err);
+    if(st){
+      st.style.display='block';
+      st.className='ai-status-bar';
+      st.style.background='var(--verm-pale)';
+      st.style.color='var(--verm)';
+      st.textContent='❌ Erro ao salvar. Tente novamente.';
+    }
+    showToast('❌ Erro ao salvar o comprovante Pix.');
+  }
 }
 function categoriaContabCanon(cat=''){
   const txt=String(cat||'').replace(/^[^\p{L}\p{N}]+/u,'').trim();
@@ -11026,17 +11421,28 @@ function limparFormDinheiro(){
   popularAutoresDinheiro();
   const data=document.getElementById('dinheiro-data');
   if(data && !data.value)data.value=hojeISO();
+  const forma=document.getElementById('dinheiro-forma');
+  if(forma)forma.value='';
+  toggleFluxoDinheiro();
+  resetFormPixMp();
 }
 
 async function carregarDinheiroVivo(){
   popularAutoresDinheiro();
   const dataEl=document.getElementById('dinheiro-data');
   if(dataEl && !dataEl.value)dataEl.value=hojeISO();
+  const pixData=document.getElementById('pix-data');
+  if(pixData && !pixData.value)pixData.value=hojeISO();
   const cat=document.getElementById('dinheiro-categoria');
   if(cat && !cat.options.length){
     cat.innerHTML=categoriasContabPorTipo('despesa').map(c=>`<option ${c==='Compras (mercado)'?'selected':''}>${c}</option>`).join('');
   }
   popularEstabelecimentosDinheiro();
+  const forma=document.getElementById('dinheiro-forma');
+  if(forma && !forma.value)forma.value='';
+  const pixBanco=document.getElementById('pix-banco');
+  if(pixBanco && !pixBanco.value)pixBanco.value='mercadopago';
+  toggleFluxoDinheiro();
   const lista=document.getElementById('dinheiro-lista');
   if(!lista)return;
   lista.innerHTML='<div class="empty">Carregando...</div>';
@@ -11120,6 +11526,7 @@ async function zerarDinheiroTudo(){
 function abrirFormularioManualDinheiroContab(){
   ir('dinheiro');
   setTimeout(()=>{
+    toggleFluxoDinheiro('especie');
     const campo=document.getElementById('dinheiro-descricao');
     if(campo)campo.focus();
   },80);
@@ -12793,6 +13200,12 @@ function modulosPermitidosPerfil(){
 
 function moduloPermitido(tela){
   const alvo=tela==='compras'?'dispensa':tela;
+  if(alvo==='dispensa'){
+    if(!perfilAtual)return false;
+    if(perfilAtual?.tipo==='admin')return true;
+    const chave=chaveLoginCanonica(perfilAtual?.nome||'');
+    return chave==='irmaosamuel';
+  }
   if(alvo==='dinheiro')return true;
   const modulos=modulosPermitidosPerfil();
   if(!modulos||modulos.includes('*'))return true;
@@ -13373,6 +13786,11 @@ ir = function(tela){
   if((tela==='assistente'||tela==='config')&&perfilAtual?.tipo!=='admin'){mostrarLogin();return;}
   if(['contab'].includes(tela)&&!perfilAtual){mostrarLogin();return;}
   if(tela==='loja'&&!perfilAtual && !MODULOS_VISAO_GERAL.includes('loja')){mostrarLogin();return;}
+  if(tela==='dispensa' && !moduloPermitido('dispensa')){
+    if(!perfilAtual){mostrarLogin();return;}
+    showToast('Acesso da dispensa liberado apenas para o Irmão Samuel e os freis.');
+    return;
+  }
   if(!moduloPermitido(tela)){showToast('Este acesso mostra apenas os módulos da responsabilidade deste irmão.');return;}
   document.querySelectorAll('[id^="screen-"]').forEach(s=>s.classList.remove('active'));
   document.getElementById('screen-'+tela).classList.add('active');
@@ -13385,7 +13803,10 @@ ir = function(tela){
   if(tela==='mural')carregarMural();
   if(tela==='oficios'){garantirSubAbaAtiva('oficios','escala');carregarEscalaHoje();}
   if(tela==='dispensa'){garantirSubAbaAtiva('dispensa','cozinha');carregarDispensa('cozinha');}
-  if(tela==='dinheiro')carregarDinheiroVivo();
+  if(tela==='dinheiro'){
+    garantirSubAbaAtiva('dinheiro','lancamento');
+    carregarDinheiroVivo();
+  }
   if(tela==='manutencao'){garantirSubAbaAtiva('manutencao','abrir');carregarManutencao();}
   if(tela==='hospedaria'){garantirSubAbaAtiva('hospedaria','painel');carregarHospedes();}
   if(tela==='saude'){garantirSubAbaAtiva('saude','painel');carregarSaude();}
@@ -14206,6 +14627,7 @@ carregarRevisao = async function(){
         const categoriaAtual=categoriaContabCanon(e.categoria);
         const precisaComprovante=despesaPrecisaComprovante(e.tipo, categoriaAtual);
         const comprovacaoPendente=isComprovacaoPendente(e);
+        const mostrarPixMp=lancamentoMercadoPagoElegivelPix(e, meta);
         let classeStatus='rev-pendente', classeValor='rv-pendente', classeBadge='rs-pendente', textoBadge='🟠 Pendente de revisão';
         if(e.status_revisao==='confirmado'){classeStatus='rev-confirmado';classeValor='rv-confirmado';classeBadge='rs-confirmado';textoBadge='✅ Confirmado';}
         if(comprovacaoPendente){classeStatus='rev-alerta';classeValor='rv-alerta';classeBadge='rs-alerta';textoBadge='🔴 Comprovação pendente';}
@@ -14276,6 +14698,13 @@ carregarRevisao = async function(){
           <div id="rev-comprovantes-info-${e.id}">${renderResumoComprovantesPendentesContab(e.id)}</div>
           ${comprovanteBadge}
           <div id="rev-comprovantes-${e.id}">${renderComprovantesContabInline(e.id)}</div>
+          ${mostrarPixMp?`
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+            <button type="button" class="btn-sm bsc" onclick="buscarComprovantePixMercadoPago('${e.id}')">🔗 Buscar comprovante Pix</button>
+            <button type="button" class="btn-sm bsc" onclick="abrirLeituraNFComIAContab('${e.id}')">📸 Ler NF com IA</button>
+            <input id="rev-nf-ia-${e.id}" type="file" accept="image/*,application/pdf" style="display:none" onchange="lerNFComIAContab('${e.id}',this)">
+          </div>
+          <div id="rev-pix-link-${e.id}"></div>`:''}
           ${meta.comprovante_status==='sem_comprovante' ? `<div style="font-size:.72rem;color:#E65100;margin-top:4px">Motivo: ${meta.comprovante_motivo||'—'}</div>` : ''}
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
             <button type="button" class="btn-sm bsv" style="flex:1" onclick="confirmarLancamento('${e.id}')">${e.status_revisao==='confirmado'?'💾 Salvar':'✅ Confirmar'}</button>
@@ -14298,6 +14727,332 @@ carregarRevisao = async function(){
   }finally{
     carregandoRevisaoAgora=false;
   }
+};
+
+// === DISPENSA V5 — fluxo simplificado por local ===
+const DISPENSA_LOCAIS_V5 = [
+  {id:'armarios', label:'Armários', icon:'🗄️'},
+  {id:'geladeira', label:'Geladeira', icon:'🧊'},
+  {id:'fruteira', label:'Fruteira', icon:'🍎'},
+  {id:'lavanderia', label:'Lavanderia', icon:'🧺'}
+];
+let dispensaLocalAtualV5 = '';
+let dispensaHistChart = null;
+
+function normalizarLocalDispensaV5(local=''){
+  const txt=String(local||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  if(txt.includes('gelad'))return 'geladeira';
+  if(txt.includes('frut'))return 'fruteira';
+  if(txt.includes('lavand'))return 'lavanderia';
+  return 'armarios';
+}
+function labelLocalDispensaV5(local=''){
+  return DISPENSA_LOCAIS_V5.find(l=>l.id===normalizarLocalDispensaV5(local))?.label || 'Armários';
+}
+function iconLocalDispensaV5(local=''){
+  return DISPENSA_LOCAIS_V5.find(l=>l.id===normalizarLocalDispensaV5(local))?.icon || '🗄️';
+}
+function mesReferenciaDispensaV5(data=''){
+  const txt=String(data||'').trim();
+  if(/^\d{4}-\d{2}-\d{2}$/.test(txt))return txt.slice(0,7);
+  if(/^\d{2}\/\d{2}\/\d{4}$/.test(txt)){
+    const [d,m,a]=txt.split('/');
+    return `${a}-${m}`;
+  }
+  return hojeISO().slice(0,7);
+}
+function labelMesDispensaV5(mes=''){
+  if(!/^\d{4}-\d{2}$/.test(mes||''))return '—';
+  const [a,m]=mes.split('-');
+  return `${MESES[(+m)-1]||m}/${a}`;
+}
+function mesAnteriorDispensaV5(mes=''){
+  if(!/^\d{4}-\d{2}$/.test(mes||''))return '';
+  const [a,m]=mes.split('-').map(Number);
+  const d=new Date(a,m-2,1);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+function dataBrDispensaV5(data=''){
+  if(/^\d{4}-\d{2}-\d{2}$/.test(data||'')){
+    const [a,m,d]=data.split('-');
+    return `${d}/${m}/${a}`;
+  }
+  return data||'';
+}
+function sugerirLocalProdutoDispensaV5(nome=''){
+  const txt=String(nome||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  if(/iogurte|frio|presunto|queijo|mussarela|latic|leite|refrigerante|suco|bebida|manteiga|requeijao|coalhada|creme de leite|leite condensado/.test(txt))return 'geladeira';
+  if(/banana|maca|pera|mamao|abacaxi|uva|laranja|limao|cebola|batata|tomate|alho|fruta|verdura|legume|alface|couve|repolho|cenoura|pepino|abobrinha|berinjela/.test(txt))return 'fruteira';
+  if(/sabao|amaciante|detergente|agua sanitaria|desinfetante|papel higienico|limpeza|bucha|esponja|lava roupas|lava louca|alvejante/.test(txt))return 'lavanderia';
+  return 'armarios';
+}
+function obterTodosItensDispensaV5(){
+  return Array.isArray(window.__dispensaCacheV5) ? window.__dispensaCacheV5 : [];
+}
+async function carregarItensDispensaV5(){
+  const {data}=await sb.from('dispensa').select('*').order('nome');
+  window.__dispensaCacheV5=(data||[]).map(item=>({...item,local_v5:normalizarLocalDispensaV5(item.local||item.setor||'armarios')}));
+  return window.__dispensaCacheV5;
+}
+function setDispensaSubviewV5(sub='cozinha'){
+  ['cozinha','lavanderia','lista','compras'].forEach(id=>document.getElementById(`sub-dispensa-${id}`)?.classList.remove('active'));
+  document.getElementById(`sub-dispensa-${sub}`)?.classList.add('active');
+}
+abrirDispensaHome = async function(){
+  dispensaLocalAtualV5='';
+  setDispensaSubviewV5('cozinha');
+  await renderDispensaHomeV5();
+};
+abrirListaComprasDispensa = async function(){
+  setDispensaSubviewV5('lista');
+  await carregarListaCompras();
+};
+abrirHistoricoGastosDispensa = async function(){
+  setDispensaSubviewV5('compras');
+  await carregarHistoricoCompras();
+};
+abrirLancamentoCompraDispensa = async function(){
+  setDispensaSubviewV5('compras');
+  const dataEl=document.getElementById('disp-data-compra');
+  if(dataEl && !dataEl.value)dataEl.value=hojeISO();
+  await carregarHistoricoCompras();
+  setTimeout(()=>document.getElementById('disp-estabelecimento')?.scrollIntoView({behavior:'smooth',block:'center'}),80);
+};
+async function renderDispensaHomeV5(){
+  const wrap=document.getElementById('dispensa-cards-home'); if(!wrap)return;
+  wrap.innerHTML='<div class="empty">Carregando...</div>';
+  const itens=await carregarItensDispensaV5();
+  const {data:lista}=await sb.from('lista_compras').select('*').eq('mes',mesAtual).eq('status','pendente');
+  wrap.innerHTML=DISPENSA_LOCAIS_V5.map(local=>{
+    const itensLocal=itens.filter(i=>i.local_v5===local.id && Number(i.quantidade||0)>0);
+    const zerados=(lista||[]).filter(i=>normalizarLocalDispensaV5(i.local||i.setor||'armarios')===local.id);
+    return `<button type="button" onclick="carregarDispensa('${local.id}')" style="text-align:left;background:#fff;border:1px solid #eadfca;border-radius:18px;padding:16px;box-shadow:0 6px 18px rgba(0,0,0,.06);cursor:pointer">
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">
+        <div>
+          <div style="font-size:1.2rem;margin-bottom:6px">${local.icon}</div>
+          <div style="font-family:'Lora',serif;font-size:1.18rem;color:var(--marrom);font-weight:700">${local.label}</div>
+          <div style="font-size:.78rem;color:var(--cinza);margin-top:4px">${itensLocal.length} item(ns) guardado(s)</div>
+        </div>
+        ${zerados.length?`<span style="background:#fdecec;color:#c62828;border:1px solid #f4b4b4;border-radius:999px;padding:5px 9px;font-size:.72rem;font-weight:700">${zerados.length} zerado(s)</span>`:''}
+      </div>
+    </button>`;
+  }).join('');
+}
+carregarDispensa = async function(local){
+  const localNorm=normalizarLocalDispensaV5(local);
+  if(!DISPENSA_LOCAIS_V5.some(l=>l.id===localNorm)){ await abrirDispensaHome(); return; }
+  dispensaLocalAtualV5=localNorm;
+  setDispensaSubviewV5('lavanderia');
+  const info=document.getElementById('disp-local-info');
+  const listaWrap=document.getElementById('disp-local-lista');
+  if(info)info.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px">
+    <div>
+      <div style="font-size:1.3rem">${iconLocalDispensaV5(localNorm)}</div>
+      <h3 style="margin:4px 0 0">${labelLocalDispensaV5(localNorm)}</h3>
+      <p style="font-size:.79rem;color:var(--cinza);margin-top:6px">Ajuste a quantidade manualmente. Quando zerar, o item vai para a lista de compras.</p>
+    </div>
+  </div>`;
+  if(listaWrap)listaWrap.innerHTML='<div class="empty">Carregando...</div>';
+  const itens=await carregarItensDispensaV5();
+  const visiveis=itens.filter(item=>item.local_v5===localNorm).sort((a,b)=>String(a.nome||'').localeCompare(String(b.nome||'')));
+  if(!listaWrap)return;
+  if(!visiveis.length){listaWrap.innerHTML='<div class="empty">Nenhum item cadastrado neste local.</div>'; return;}
+  listaWrap.innerHTML=visiveis.map(item=>{
+    const qtd=Number(item.quantidade||0); const zerado=qtd<=0;
+    return `<div class="disp-item ${zerado?'zerado':''}" style="margin-bottom:10px">
+      <div class="disp-top">
+        <div><div class="disp-nome">${escapeHtml(item.nome||'Item')}</div><div class="disp-validade" style="color:var(--cinza)">${qtd} ${escapeHtml(item.unidade||'un')}</div></div>
+        ${zerado?'<span class="disp-status ds-zerado">Zerado</span>':'<span class="disp-status ds-ok">OK</span>'}
+      </div>
+      <div class="disp-qty">
+        <button class="qty-minus" onclick="atualizarQtyDisp('${item.id}',${Math.max(0,qtd-1)},'${localNorm}')">−</button>
+        <span class="qty-val">${parseFloat(qtd).toFixed((qtd%1)?1:0)}</span>
+        <span class="qty-unit">${escapeHtml(item.unidade||'un')}</span>
+        <button class="qty-plus" onclick="atualizarQtyDisp('${item.id}',${qtd+1},'${localNorm}')">+</button>
+        <button class="btn-sm bsr" style="margin-left:auto" onclick="excluirItemDispensaLocalV5('${item.id}','${localNorm}')">🗑️ Excluir</button>
+      </div>
+    </div>`;
+  }).join('');
+};
+async function excluirItemDispensaLocalV5(id='', local='armarios'){
+  if(!confirm('Excluir este item deste local?'))return;
+  await sb.from('dispensa').delete().eq('id',id);
+  await carregarDispensa(local);
+  await renderDispensaHomeV5();
+  showToast('Item excluído da dispensa.');
+}
+function agruparListaComprasDispensaV5(lista=[]){
+  const agrupado={};
+  (lista||[]).forEach(item=>{
+    const local=normalizarLocalDispensaV5(item.local||item.setor||'armarios');
+    const chave=`${local}|${normalizarItemCompra(item.nome)}|${item.unidade||'un'}`;
+    if(!agrupado[chave])agrupado[chave]={nome:item.nome,local,unidade:item.unidade||'un',pendente:0,ids:[]};
+    agrupado[chave].pendente+=Number(item.quantidade||0)||0;
+    agrupado[chave].ids.push(item.id);
+  });
+  return Object.values(agrupado).sort((a,b)=>a.nome.localeCompare(b.nome));
+}
+function sugestaoCompraDispensaV5(nome='', local='armarios', unidade='un', mesAtualSel=''){
+  const historico=(getDispMeta().historico||[]);
+  const prev=mesAnteriorDispensaV5(mesAtualSel||mesAtual);
+  if(!prev)return null;
+  const total=historico
+    .filter(item=>mesReferenciaDispensaV5(item.data||item.created_at||'')===prev)
+    .filter(item=>normalizarItemCompra(item.nome)===normalizarItemCompra(nome))
+    .filter(item=>normalizarLocalDispensaV5(item.local||item.setor||'armarios')===normalizarLocalDispensaV5(local))
+    .reduce((acc,item)=>acc+(Number(item.quantidade||0)||0),0);
+  return total>0?total:null;
+}
+carregarListaCompras = async function(){
+  const c=document.getElementById('lista-compras-disp'); if(!c)return;
+  c.innerHTML='<div class="empty">Carregando...</div>';
+  const {data}=await sb.from('lista_compras').select('*').eq('mes',mesAtual).eq('status','pendente').order('created_at');
+  const grupos=agruparListaComprasDispensaV5(data||[]);
+  if(!grupos.length){c.innerHTML='<div class="empty">Nenhum item zerado na lista de compras deste mês.</div>'; return;}
+  const porLocal={}; grupos.forEach(g=>{ if(!porLocal[g.local])porLocal[g.local]=[]; porLocal[g.local].push(g); });
+  c.innerHTML=DISPENSA_LOCAIS_V5.map(local=>{
+    const itens=porLocal[local.id]||[]; if(!itens.length)return '';
+    return `<div class="sec-title" style="margin-top:0">${local.icon} ${local.label}</div>
+      ${itens.map(item=>{
+        const sugestao=sugestaoCompraDispensaV5(item.nome,item.local,item.unidade,mesAtual);
+        return `<label class="mitem" style="display:flex;gap:10px;align-items:flex-start;opacity:1">
+          <input type="checkbox" data-disp-check value="${item.ids.join(',')}" style="margin-top:4px">
+          <div>
+            <div class="mi-n">${escapeHtml(item.nome)}</div>
+            <div class="mi-s">${labelLocalDispensaV5(item.local)} · ${escapeHtml(item.unidade)}</div>
+            <div class="mi-s">comprar: ${sugestao!==null?`${sugestao} ${item.unidade}`:'—'}${item.pendente?` · zerado agora: ${item.pendente} ${item.unidade}`:''}</div>
+          </div>
+        </label>`;
+      }).join('')}`;
+  }).join('');
+};
+async function confirmarCompradosDispensa(){
+  const ids=[...document.querySelectorAll('[data-disp-check]:checked')].flatMap(el=>String(el.value||'').split(',').filter(Boolean));
+  if(!ids.length){showToast('Marque ao menos um item da lista.'); return;}
+  await marcarNecessidadesCompradas(ids);
+  await carregarListaCompras();
+  showToast('Itens marcados como comprados.');
+}
+async function compartilharListaComprasDispensa(){
+  const {data}=await sb.from('lista_compras').select('*').eq('mes',mesAtual).eq('status','pendente').order('created_at');
+  const grupos=agruparListaComprasDispensaV5(data||[]);
+  if(!grupos.length){showToast('A lista de compras está vazia.'); return;}
+  const texto='Lista de compras da casa\n\n'+DISPENSA_LOCAIS_V5.map(local=>{
+    const itens=grupos.filter(g=>g.local===local.id); if(!itens.length)return '';
+    return `${local.label}\n`+itens.map(item=>{
+      const sugestao=sugestaoCompraDispensaV5(item.nome,item.local,item.unidade,mesAtual);
+      return `• ${item.nome} — comprar: ${sugestao!==null?`${sugestao} ${item.unidade}`:'—'}`;
+    }).join('\n');
+  }).filter(Boolean).join('\n\n');
+  if(navigator.share){ try{ await navigator.share({text:texto}); return; }catch(_){} }
+  try{ await navigator.clipboard.writeText(texto); showToast('Lista copiada para compartilhar.'); }
+  catch(_){ prompt('Copie a lista abaixo:', texto); }
+}
+function valorHistoricoLoteDispensaV5(item){
+  if(Number(item.lote_total||0)>0)return Number(item.lote_total||0);
+  return Number(item.total||0)||0;
+}
+function lotesHistoricoDispensaV5(itens=[], mesRef=''){
+  const grupos=new Map();
+  (itens||[]).filter(item=>mesReferenciaDispensaV5(item.data||item.created_at||'')===mesRef).forEach(item=>{
+    const chave=item.lote_id || `${item.estabelecimento||'sem'}|${item.data||''}|${item.created_at||''}`;
+    if(!grupos.has(chave))grupos.set(chave,{id:chave,lote_id:item.lote_id||'',estabelecimento:item.estabelecimento||'Sem estabelecimento',data:item.data||hojeISO(),created_at:item.created_at||new Date().toISOString(),valor_total:valorHistoricoLoteDispensaV5(item),itens:[],nf_fotos:item.nf_fotos||[],obs:item.obs_compra||''});
+    const grupo=grupos.get(chave);
+    grupo.itens.push(item);
+    grupo.valor_total=Math.max(grupo.valor_total, valorHistoricoLoteDispensaV5(item));
+    if((!grupo.nf_fotos||!grupo.nf_fotos.length) && item.nf_fotos?.length)grupo.nf_fotos=item.nf_fotos;
+    if(!grupo.obs && item.obs_compra)grupo.obs=item.obs_compra;
+  });
+  return [...grupos.values()].sort((a,b)=>String(b.data||'').localeCompare(String(a.data||'')) || String(b.created_at||'').localeCompare(String(a.created_at||'')));
+}
+function garantirMesHistoricoDispensaV5(){
+  const select=document.getElementById('disp-hist-mes'); if(!select)return mesAtual;
+  const historico=(getDispMeta().historico||[]);
+  const meses=[...new Set(historico.map(item=>mesReferenciaDispensaV5(item.data||item.created_at||'')).filter(Boolean))].sort().reverse();
+  if(!meses.length)meses.push(mesAtual);
+  if(!window.dispensaHistoricoMesAtual || !meses.includes(window.dispensaHistoricoMesAtual))window.dispensaHistoricoMesAtual=meses[0];
+  select.innerHTML=meses.map(m=>`<option value="${m}" ${m===window.dispensaHistoricoMesAtual?'selected':''}>${labelMesDispensaV5(m)}</option>`).join('');
+  return window.dispensaHistoricoMesAtual;
+}
+function podeExcluirHistoricoDispensaV5(lote){
+  if(perfilAtual?.tipo==='admin')return true;
+  const nome=String(perfilAtual?.nome||'').toLowerCase();
+  if(!/samuel/.test(nome))return false;
+  return String(lote?.data||'')===hojeISO();
+}
+async function reverterItensLoteDispensaV5(itens=[]){
+  const estoque=await carregarItensDispensaV5();
+  for(const item of itens){
+    const local=normalizarLocalDispensaV5(item.local||item.setor||'armarios');
+    const nome=item.nome||''; const unidade=item.unidade||'un'; const qtd=Math.max(0,Number(item.quantidade||0));
+    const alvo=estoque.find(reg=>reg.id===item.produto_id) || estoque.find(reg=>normalizarItemCompra(reg.nome)===normalizarItemCompra(nome) && normalizarLocalDispensaV5(reg.local||reg.setor||'armarios')===local && String(reg.unidade||'un')===String(unidade||'un'));
+    if(!alvo)continue;
+    await sb.from('dispensa').update({quantidade:Math.max(0,Number(alvo.quantidade||0)-qtd),updated_at:new Date().toISOString()}).eq('id',alvo.id);
+  }
+}
+async function excluirLoteHistoricoDispensaV5(chave=''){
+  const historico=(getDispMeta().historico||[]);
+  const lotes=lotesHistoricoDispensaV5(historico, garantirMesHistoricoDispensaV5());
+  const lote=lotes.find(l=>l.id===chave || l.lote_id===chave); if(!lote)return;
+  if(!podeExcluirHistoricoDispensaV5(lote)){ showToast('Solicite a um Frei para excluir lançamentos anteriores.'); return; }
+  if(!confirm(`Excluir esta compra de ${lote.estabelecimento} em ${dataBrDispensaV5(lote.data)}?`))return;
+  await reverterItensLoteDispensaV5(lote.itens);
+  if(lote.lote_id)await moverHistoricoLoteDispensaParaLixeira(lote.lote_id);
+  else for(const item of lote.itens)await moverHistoricoDispensaParaLixeira(chaveHistoricoDispensa(item));
+  if(dispensaLocalAtualV5)await carregarDispensa(dispensaLocalAtualV5);
+  await renderDispensaHomeV5(); await carregarListaCompras(); await carregarHistoricoCompras();
+  showToast('Compra removida do histórico.');
+}
+abrirMidiaHistoricoDispensaV5 = function(src=''){
+  if(!src)return;
+  const w=window.open('','_blank');
+  if(!w){showToast('Permita pop-up para abrir a nota.');return;}
+  const isPdf=/^data:application\/pdf/i.test(src);
+  w.document.write(isPdf?`<iframe src="${src}" style="border:0;width:100vw;height:100vh"></iframe>`:`<div style="margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="${src}" style="max-width:96vw;max-height:96vh;object-fit:contain"></div>`);
+  w.document.close();
+};
+carregarHistoricoCompras = async function(){
+  const c=document.getElementById('disp-historico-lista'); if(!c)return;
+  c.innerHTML='<div class="empty">Carregando histórico...</div>';
+  await sincronizarHistoricoDispensaCompartilhado(); await sincronizarLixeiraDispensaCompartilhada();
+  const historico=(getDispMeta().historico||[]);
+  const mesRef=garantirMesHistoricoDispensaV5();
+  const lotes=lotesHistoricoDispensaV5(historico, mesRef);
+  const totalMes=lotes.reduce((acc,l)=>acc+(Number(l.valor_total||0)||0),0);
+  const totalEl=document.getElementById('disp-total-mes'); if(totalEl)totalEl.textContent=fmt(totalMes);
+  const chartEl=document.getElementById('disp-hist-chart');
+  if(chartEl && typeof Chart!=='undefined'){
+    const porEstab={}; lotes.forEach(l=>{ porEstab[l.estabelecimento]=(porEstab[l.estabelecimento]||0)+(Number(l.valor_total||0)||0); });
+    const labels=Object.keys(porEstab); const valores=labels.map(k=>porEstab[k]);
+    if(dispensaHistChart){ try{dispensaHistChart.destroy();}catch(_){} }
+    dispensaHistChart=new Chart(chartEl.getContext('2d'),{type:'bar',data:{labels,datasets:[{data:valores,backgroundColor:'#C3922E',borderRadius:8}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{callback:(v)=>fmt(v)}},y:{ticks:{font:{family:'Source Sans 3'}}}}}});
+  }
+  if(!lotes.length){ c.innerHTML=`<div class="empty">Nenhuma compra registrada em ${labelMesDispensaV5(mesRef)}.</div>`; return; }
+  c.innerHTML=lotes.map(lote=>{
+    const podeExcluir=podeExcluirHistoricoDispensaV5(lote);
+    const fotos=(lote.nf_fotos||[]).map((foto,idx)=>{ const src=(foto?.dataUrl||foto||'').replace(/'/g,'&#39;'); return `<button type="button" class="btn-sm bsaz" onclick="abrirMidiaHistoricoDispensaV5('${src}')">${/^data:application\\/pdf/i.test(src)?'📄':'🖼️'} Nota ${idx+1}</button>`; }).join('');
+    return `<details class="hist-compra">
+      <summary style="list-style:none;cursor:pointer;display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
+        <div><div class="hc-loja">${escapeHtml(lote.estabelecimento)}</div><div class="hc-data">📅 ${dataBrDispensaV5(lote.data)}</div></div>
+        <div class="hc-total">${fmt(lote.valor_total||0)}</div>
+      </summary>
+      ${lote.obs?`<div style="font-size:.75rem;color:var(--cinza);margin-top:8px">${escapeHtml(lote.obs)}</div>`:''}
+      <div style="margin-top:8px;display:grid;gap:8px">
+        ${lote.itens.map(item=>`<div style="padding:8px 10px;border:1px solid #efe4cf;border-radius:10px;background:#fffaf2"><div style="font-weight:700;color:var(--marrom)">${escapeHtml(item.nome||'Item')}</div><div style="font-size:.75rem;color:var(--cinza)">${escapeHtml(labelLocalDispensaV5(item.local||item.setor||'armarios'))} · ${item.quantidade} ${escapeHtml(item.unidade||'un')} · ${fmt(item.total||0)}</div></div>`).join('')}
+      </div>
+      ${fotos?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">${fotos}</div>`:''}
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+        ${podeExcluir?`<button type="button" class="btn-sm bsr" onclick="excluirLoteHistoricoDispensaV5('${escapeHtml(lote.lote_id||lote.id)}')">🗑️ Excluir compra</button>`:''}
+        ${!podeExcluir?`<div style="font-size:.75rem;color:var(--cinza)">Solicite a um Frei para excluir lançamentos anteriores.</div>`:''}
+      </div>
+    </details>`;
+  }).join('');
+};
+registrarCompraDispensa = registrarCompraDispensa;
+const __irOriginalDispensaV5 = ir;
+ir = function(tela){
+  __irOriginalDispensaV5(tela);
+  if((tela||'')==='dispensa')setTimeout(()=>{abrirDispensaHome();},0);
 };
 
 // === BOOTSTRAP === inicializa o app
