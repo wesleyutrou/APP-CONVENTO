@@ -5409,10 +5409,11 @@ function renderVeicHistForm(item=null){
   const c=document.getElementById('veic-hist-form');
   if(!c)return;
   const edit=item||null;
+  const statusPadrao = edit ? (edit?.chegada ? 'fechado' : 'aberto') : 'fechado';
   const veicId=edit?.veiculo_id||document.getElementById('veic-hm-veiculo')?.value||VEICULOS_DATA?.[0]?.id||'';
   const motoristas=motoristasPermitidosVeiculo(veicId);
   const dataChegadaEdit=veicDate(edit?.data_chegada)||veicExtrairDataChegada(edit)||veicDate(edit?.data)||hojeISO();
-  const usaOutroDia = !!(edit?.chegada && dataChegadaEdit && dataChegadaEdit!==veicDate(edit?.data));
+  const usaOutroDia = !!((edit?.chegada || !edit) && dataChegadaEdit && dataChegadaEdit!==veicDate(edit?.data||hojeISO()));
   const veicOpts=(VEICULOS_DATA||[]).map(v=>`<option value="${v.id}" ${v.id===veicId?'selected':''}>${escapeHtml(corrigirNomeVeiculo(v.nome||'Veículo'))}</option>`).join('');
   const motOpts=(motoristas||[]).map(i=>`<option ${i.nome===String(edit?.motorista||'')?'selected':''}>${escapeHtml(i.nome)}</option>`).join('');
   c.innerHTML=`<div class="card" style="margin-bottom:12px">
@@ -5444,7 +5445,7 @@ function renderVeicHistForm(item=null){
     </div>
     <div class="frow">
       <div><label class="fl">Combustível ao chegar</label><select id="veic-hm-comb" class="fi"><option value="">Não informar</option>${FUEL_OPTS.map(o=>`<option value="${o.val}" ${String(edit?.combustivel||'')===String(o.val)?'selected':''}>${o.label}</option>`).join('')}</select></div>
-      <div><label class="fl">Status</label><select id="veic-hm-status" class="fi"><option value="aberto" ${!edit?.chegada?'selected':''}>Em aberto</option><option value="fechado" ${edit?.chegada?'selected':''}>Fechado</option></select></div>
+      <div><label class="fl">Status</label><select id="veic-hm-status" class="fi"><option value="aberto" ${statusPadrao==='aberto'?'selected':''}>Em aberto</option><option value="fechado" ${statusPadrao==='fechado'?'selected':''}>Fechado</option></select></div>
     </div>
     <label class="fl">Observações</label>
     <textarea id="veic-hm-obs" class="fi" rows="2" style="resize:none">${escapeHtml(veicObsSemMeta(edit?.obs||''))}</textarea>
