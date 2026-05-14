@@ -784,6 +784,12 @@ header p{font-size:.62rem;color:rgba(201,151,58,.65);margin-top:1px;}
 .tabs::-webkit-scrollbar{display:none;}
 .tab-btn{flex:1;min-width:52px;padding:9px 4px;background:none;border:none;color:rgba(201,151,58,.5);font-family:'Source Sans 3',sans-serif;font-size:.62rem;font-weight:600;cursor:pointer;text-transform:uppercase;letter-spacing:.03em;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s;white-space:nowrap;}
 .tab-btn.active{color:var(--ouro);border-bottom-color:var(--ouro);}
+#screen-veiculos .tabs.veh-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));overflow:visible}
+#screen-veiculos .tabs.veh-tabs .tab-btn{white-space:normal;line-height:1.15;min-width:0;padding:10px 6px;font-size:.67rem}
+@media (min-width: 720px){
+  #screen-veiculos .tabs.veh-tabs{display:flex;overflow-x:auto}
+  #screen-veiculos .tabs.veh-tabs .tab-btn{white-space:nowrap;font-size:.72rem;padding:10px 8px}
+}
 #screen-veiculos .tabs{
   display:grid;
   grid-template-columns:repeat(3,minmax(0,1fr));
@@ -2403,12 +2409,12 @@ mark{background:#fff59d;border-radius:2px;}
 
 <!-- ══════ VEÍCULOS ══════ -->
 <div id="screen-veiculos" class="screen">
-  <div class="tabs">
+  <div class="tabs veh-tabs">
     <button class="tab-btn active" onclick="stab('veiculos','painel',this);renderVeiculos()">🚗 Painel</button>
     <button class="tab-btn" onclick="stab('veiculos','hist',this);carregarVeicHist()">📋 Histórico</button>
-    <button class="tab-btn" onclick="stab('veiculos','obs',this);carregarVeicObs()">⚠️ Obs.</button>
+    <button class="tab-btn" onclick="stab('veiculos','obs',this);carregarVeicObs()">⚠️ Alertas</button>
     <button id="tab-veiculos-manutencao" class="tab-btn" style="display:none" onclick="stab('veiculos','manutencao',this);carregarVeicManutencao()">🛠️ Manutenção</button>
-    <button class="tab-btn" onclick="stab('veiculos','abastecimento',this);carregarVeicAbastecimento()">⛽ Abastecimento</button>
+    <button class="tab-btn" onclick="stab('veiculos','abastecimento',this);carregarVeicAbastecimento()">⛽ Abastecer</button>
     <button id="tab-veiculos-cadastro" class="tab-btn" style="display:none" onclick="stab('veiculos','cadastro',this);renderVeiculosCadastro()">🗂️ Cadastro</button>
   </div>
   <div id="sub-veiculos-painel" class="screen active" style="padding:12px 0 0">
@@ -5102,6 +5108,31 @@ function setFiltroAbastVeiculos(id=''){
   carregarVeicAbastecimento();
 }
 
+function renderResumoStatusVeiculos(lista=[]){
+  if(!(lista||[]).length)return '<div class="empty">Nenhum veículo cadastrado.</div>';
+  return `<div class="card" style="margin-bottom:14px">
+    <h3>🚗 Status dos veículos</h3>
+    <p style="font-size:.79rem;color:var(--cinza);margin-bottom:10px">Veja abaixo se o carro está livre, em uso ou indisponível. Depois selecione o veículo no campo acima para abrir a saída.</p>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      ${lista.map(v=>{
+        const uso=vehEmUso[v.id];
+        const status=(typeof statusVeiculoMeta==='function')?statusVeiculoMeta(v.id):{tipo:'disponivel',detalhe:''};
+        let cls='vs-livre', txt='Disponível';
+        if(uso){ cls='vs-ocup'; txt='Em uso'; }
+        else if(status.tipo==='manutencao'){ cls='vs-limp'; txt='Manutenção'; }
+        else if(status.tipo==='conserto'){ cls='vs-ocup'; txt='Conserto'; }
+        return `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;border:1px solid #eadfca;border-radius:16px;background:#fff">
+          <div>
+            <div style="font-family:'Lora',serif;font-size:1rem;color:var(--marrom);font-weight:700">${escapeHtml(corrigirNomeVeiculo(v.nome||'Veículo'))}</div>
+            <div style="font-size:.75rem;color:var(--cinza)">${escapeHtml(v.placa||'—')}</div>
+          </div>
+          <span class="veh-status ${cls}">${txt}</span>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+
 function toggleVehCard(id){
   const card=document.getElementById('vfc-'+id);
   if(!card)return;
@@ -5116,11 +5147,17 @@ function renderVeiculos(){
   c.classList.add('veh-galeria');
   preencherFiltroVeiculosPainel();
   const motoristas=IRMAOS_DB.filter(i=>i.van!==undefined||i.tipo==='novico'||i.tipo==='frei');
-  const listaPainel=(VEICULOS_DATA||[]).filter(v=>!veicPainelFiltroId || v.id===veicPainelFiltroId);
-  if(!listaPainel.length){
-    c.innerHTML='<div class="empty">Nenhum veículo encontrado para este filtro.</div>';
+  const statusHtml=renderResumoStatusVeiculos(VEICULOS_DATA||[]);
+  if(!veicPainelFiltroId){
+    c.innerHTML=statusHtml + `<div class="card"><div class="empty">Selecione um veículo no campo acima para abrir a saída ou registrar a chegada.</div></div>`;
     return;
   }
+  const listaPainel=(VEICULOS_DATA||[]).filter(v=>v.id===veicPainelFiltroId);
+  if(!listaPainel.length){
+    c.innerHTML=statusHtml + '<div class="empty">Nenhum veículo encontrado para este filtro.</div>';
+    return;
+  }
+  c.innerHTML=statusHtml + `<div class="sec-title" style="margin-top:0">🚗 Veículo selecionado</div>`;
   listaPainel.forEach(v=>{
     const uso=vehEmUso[v.id];
     const status=(typeof statusVeiculoMeta==='function')?statusVeiculoMeta(v.id):{tipo:'disponivel',detalhe:''};
@@ -5364,6 +5401,10 @@ function editarViagemVeiculo(id=''){
   const item=(todosViagens||[]).find(v=>v.id===id);
   if(!item)return;
   veicHistEditandoId=id;
+  const abaBtn=[...document.querySelectorAll('#screen-veiculos .tab-btn')].find(btn=>/histórico/i.test(btn.textContent||''));
+  if(typeof stab==='function'){
+    try{ stab('veiculos','hist',abaBtn||document.querySelector('#screen-veiculos .tab-btn')); }catch(_){}
+  }
   renderVeicHistForm(item);
   document.getElementById('veic-hist-form')?.scrollIntoView({behavior:'smooth',block:'start'});
 }
