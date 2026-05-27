@@ -872,25 +872,55 @@ header p{font-size:.62rem;color:rgba(201,151,58,.65);margin-top:1px;}
   #screen-veiculos .tabs,
   #screen-arraia .tabs{
     position:fixed;
-    left:12px;
-    right:12px;
+    left:14px;
+    right:14px;
     bottom:calc(10px + env(safe-area-inset-bottom));
     z-index:90;
-    border-radius:18px;
-    border:1px solid rgba(201,151,58,.22);
-    background:rgba(44,24,0,.96);
-    box-shadow:0 18px 38px rgba(34,20,0,.24);
-    backdrop-filter:blur(10px);
-    padding:8px;
+    border-radius:0;
+    border:1px solid rgba(60,44,18,.08);
+    border-top-left-radius:20px;
+    border-top-right-radius:20px;
+    background:rgba(255,255,255,.98);
+    box-shadow:0 -8px 26px rgba(28,18,0,.12);
+    backdrop-filter:blur(8px);
+    padding:10px 8px calc(10px + env(safe-area-inset-bottom));
+    justify-content:space-around;
+  }
+  #screen-veiculos .tabs .tab-btn,
+  #screen-arraia .tabs .tab-btn{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:4px;
+    min-width:68px;
+    padding:8px 6px;
+    border-radius:14px;
+    color:#7f8797;
+    background:transparent;
+    line-height:1.05;
+    font-size:.66rem;
+    letter-spacing:.01em;
+    font-weight:700;
+  }
+  #screen-veiculos .tabs .tab-btn.active,
+  #screen-arraia .tabs .tab-btn.active{
+    background:#f7efe0;
+    color:#6f4a12;
+    box-shadow:inset 0 0 0 1px rgba(201,151,58,.18);
   }
   #screen-veiculos .tabs .tab-btn{
     font-size:.68rem;
-    padding:9px 10px;
+    padding:8px 6px;
   }
   #screen-arraia .tabs .tab-btn{
     font-size:.68rem;
-    padding:9px 10px;
+    padding:8px 6px;
   }
+  .toast{bottom:108px}
+  .arraia-barracas-grid{gap:10px}
+  .arraia-barraca-card{padding:12px}
+  .arraia-barraca-name{font-size:.98rem}
 }
 #screen-contab .tabs .tab-btn.bank-tab{border-radius:14px 14px 0 0;margin:0 2px -2px;padding-left:8px;padding-right:8px;}
 #screen-contab .tabs .tab-btn.bank-tab.active{color:#fff;border-bottom-color:transparent;}
@@ -1823,6 +1853,14 @@ overflow:hidden}
 .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;font-size:.72rem;font-weight:700;background:#f5ead2;color:#7a5a20}
 .pill.pr-p{background:#fff0d9;color:#b86a00}
 .pill.pr-v{background:#e7f7ec;color:#1f8a4c}
+.arraia-barracas-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.arraia-barraca-card{margin:0;text-align:left;padding:14px 14px 12px;border-radius:18px;cursor:pointer;background:#fff;border:2px solid rgba(73,49,14,.12);box-shadow:0 6px 16px rgba(44,24,0,.08);transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease}
+.arraia-barraca-card.active{background:linear-gradient(135deg,#fffaf1,#f7eedc);border-color:rgba(201,151,58,.45);box-shadow:0 10px 22px rgba(201,151,58,.18)}
+.arraia-barraca-card:active{transform:scale(.985)}
+.arraia-barraca-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.arraia-barraca-ic{font-size:1.45rem;line-height:1}
+.arraia-barraca-name{font-family:'Lora',serif;font-size:1.05rem;line-height:1.15;color:var(--marrom);margin-top:8px}
+.arraia-barraca-meta{font-size:.73rem;color:var(--cinza);margin-top:8px}
 .contab-dia-grupo{
   font-family:'Source Sans 3',sans-serif;
   font-size:.72rem;
@@ -2205,7 +2243,7 @@ mark{background:#fff59d;border-radius:2px;}
     <div class="card" style="margin-bottom:12px">
       <h3>🎪 Barracas do Arraiá</h3>
       <p style="font-size:.79rem;color:var(--cinza);margin-bottom:10px">Cadastre o que cada barraca precisa, marque o que vem por doação, o que será reservado do almoxarifado e o que ainda precisa comprar.</p>
-      <div id="arraia-barracas-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px"></div>
+      <div id="arraia-barracas-cards" class="arraia-barracas-grid"></div>
     </div>
     <div class="card" style="margin-bottom:12px">
       <label class="fl first">Selecionar barraca</label>
@@ -15455,6 +15493,20 @@ function getArraiaTotaisResumo(){
     comprasPend:(st.compras||[]).filter(c=>c.status==='pendente').length
   };
 }
+function getArraiaBarracaIcon(id=''){
+  const mapa={
+    pastel:'🥟',
+    churrasco:'🍢',
+    fritas:'🍟',
+    bebidas:'🥤',
+    vinhoquentao:'🍷',
+    doces:'🍬',
+    cachorroquente:'🌭',
+    milho:'🌽',
+    caldos:'🍲'
+  };
+  return mapa[String(id||'').toLowerCase()]||'🎪';
+}
 function popularSelectArraiaBarracas(){
   const st=getArraiaState();
   ['arraia-barraca-select','arraia-dest-barraca'].forEach(id=>{
@@ -15488,6 +15540,9 @@ function abrirPainelBarracaArraia(id=''){
   if(select)select.value=id;
   arraiaBarracaAtual=id||'';
   renderArraiaBarracas();
+  setTimeout(()=>{
+    document.getElementById('arraia-barraca-painel')?.scrollIntoView({behavior:'smooth',block:'start'});
+  },40);
 }
 function toggleOrigemItemArraia(){
   const origem=document.getElementById('arraia-item-origem')?.value||'pendente';
@@ -15597,7 +15652,8 @@ function registrarItemAlmoxarifadoArraia(){
     st.almoxarifado.push({id:arraiaUid('alm'),nome,categoria,unidade,quantidade_total:qtd,reservas:[]});
   }
   setArraiaState(st);
-  ['arraia-almox-nome','arraia-almox-qtd','arraia-almox-und'].forEach(id=>{const el=document.getElementById(id); if(el)el.value='';});
+  ['arraia-almox-nome','arraia-almox-qtd'].forEach(id=>{const el=document.getElementById(id); if(el)el.value='';});
+  const und=document.getElementById('arraia-almox-und'); if(und)und.value='un';
   const cat=document.getElementById('arraia-almox-cat'); if(cat)cat.value='Alimentos';
   renderArraiaAlmoxarifado();
   showToast('Item adicionado ao almoxarifado.');
@@ -15634,7 +15690,7 @@ function renderArraiaBarracasCards(){
   const st=getArraiaState();
   box.innerHTML=st.barracas.map(b=>{
     const r=getArraiaResumoBarraca(b);
-    return `<button type="button" class="card" style="margin:0;text-align:left;padding:12px;border-radius:16px;cursor:pointer;background:${arraiaBarracaAtual===b.id?'var(--ouro-pale)':'#fff'}" onclick="abrirPainelBarracaArraia('${b.id}')"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><strong style="font-family:'Lora',serif;color:var(--marrom)">${escapeHtml(b.nome)}</strong><span class="pill ${r.pendentes?'pr-p':'pr-v'}">${r.pendentes?`${r.pendentes} pend.`:'OK'}</span></div><div style="font-size:.74rem;color:var(--cinza);margin-top:6px">${r.total} item(ns) · ${r.reservados} reservados · ${r.entregues} entregues</div></button>`;
+    return `<button type="button" class="arraia-barraca-card ${arraiaBarracaAtual===b.id?'active':''}" onclick="abrirPainelBarracaArraia('${b.id}')"><div class="arraia-barraca-top"><span class="arraia-barraca-ic">${getArraiaBarracaIcon(b.id)}</span><span class="pill ${r.pendentes?'pr-p':'pr-v'}">${r.pendentes?`${r.pendentes} pend.`:'OK'}</span></div><div class="arraia-barraca-name">${escapeHtml(b.nome)}</div><div class="arraia-barraca-meta">${r.total} item(ns) · ${r.reservados} reservados</div></button>`;
   }).join('');
 }
 function renderArraiaPainelBarraca(barraca){
