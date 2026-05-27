@@ -1772,6 +1772,9 @@ overflow:hidden}
 .contab-pill.cp-pendente{background:#fff0d9;color:#b86a00}
 .contab-pill.cp-confirmado{background:#e7f7ec;color:#1f8a4c}
 .contab-pill.cp-alerta{background:#fde7e7;color:#c62828}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;font-size:.72rem;font-weight:700;background:#f5ead2;color:#7a5a20}
+.pill.pr-p{background:#fff0d9;color:#b86a00}
+.pill.pr-v{background:#e7f7ec;color:#1f8a4c}
 .contab-dia-grupo{
   font-family:'Source Sans 3',sans-serif;
   font-size:.72rem;
@@ -2003,6 +2006,10 @@ mark{background:#fff59d;border-radius:2px;}
       <div class="icon">🚗</div><h3>Veículos</h3><p>Saída, chegada e combustível</p>
       <span class="hcard-metric" id="hm-veiculos"></span>
     </div>
+    <div class="hcard size-sm" onclick="ir('arraia')">
+      <div class="icon">🎪</div><h3>Arraiá</h3><p>Barracas, almoxarifado e compras</p>
+      <span class="hcard-metric" id="hm-arraia"></span>
+    </div>
     <div class="hcard size-sm" id="card-loja" onclick="ir('loja')">
 <div class="icon">🏪</div><h3>Loja</h3><p>Vendas e estoque</p>
       <span class="hcard-metric" id="hm-loja"></span>
@@ -2059,6 +2066,7 @@ mark{background:#fff59d;border-radius:2px;}
         <button class="side-item" data-modulo="dispensa" onclick="ir('dispensa')"><span class="si-ic">🥫</span><span>Dispensa</span></button>
         <button class="side-item" data-modulo="dinheiro" onclick="ir('dinheiro')"><span class="si-ic">💵</span><span>Dinheiro</span></button>
         <button class="side-item" data-modulo="veiculos" onclick="ir('veiculos')"><span class="si-ic">🚗</span><span>Veículos</span></button>
+        <button class="side-item" data-modulo="arraia" onclick="ir('arraia')"><span class="si-ic">🎪</span><span>Arraiá</span></button>
         <button class="side-item" data-modulo="manutencao" onclick="ir('manutencao')"><span class="si-ic">🧰</span><span>Manutenção</span></button>
         <button class="side-item frei-only" data-modulo="compras" onclick="ir('compras')"><span class="si-ic">🛒</span><span>Compras</span></button>
       </div>
@@ -2134,6 +2142,68 @@ mark{background:#fff59d;border-radius:2px;}
       <h3>🥫 Dispensa em alerta</h3>
       <div id="dash-dispensa-lista"><div class="empty">Tudo em dia.</div></div>
     </div>
+  </div>
+</div>
+
+<!-- ══════ ARRAIÁ ══════ -->
+<div id="screen-arraia" class="screen">
+  <div class="tabs">
+    <button class="tab-btn active" onclick="stab('arraia','barracas',this);carregarArraia()">🎪 Barracas</button>
+    <button class="tab-btn" onclick="stab('arraia','almox',this);renderArraiaAlmoxarifado()">📦 Almoxarifado</button>
+    <button class="tab-btn" onclick="stab('arraia','compras',this);renderArraiaCompras()">🛒 Compras</button>
+    <button class="tab-btn" onclick="stab('arraia','resumo',this);renderArraiaResumo()">📊 Resumo</button>
+  </div>
+  <div id="sub-arraia-barracas" class="screen active" style="padding:12px 0 0">
+    <div class="card" style="margin-bottom:12px">
+      <h3>🎪 Barracas do Arraiá</h3>
+      <p style="font-size:.79rem;color:var(--cinza);margin-bottom:10px">Cadastre o que cada barraca precisa, marque o que vem por doação, o que será reservado do almoxarifado e o que ainda precisa comprar.</p>
+      <div id="arraia-barracas-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px"></div>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <label class="fl first">Selecionar barraca</label>
+      <select id="arraia-barraca-select" class="fi" onchange="setArraiaBarracaAtual(this.value)">
+        <option value="">Selecione a barraca...</option>
+      </select>
+    </div>
+    <div id="arraia-barraca-painel"><div class="empty">Selecione uma barraca para começar.</div></div>
+  </div>
+  <div id="sub-arraia-almox" class="screen" style="padding:12px 0 0">
+    <div class="card" style="margin-bottom:12px">
+      <h3>📦 Almoxarifado central</h3>
+      <p style="font-size:.79rem;color:var(--cinza);margin-bottom:10px">Cadastre aqui o estoque geral do Arraiá. O que for reservado para uma barraca continua no almoxarifado, mas deixa de ficar livre.</p>
+      <div class="frow">
+        <div><label class="fl first">Item</label><input id="arraia-almox-nome" class="fi" type="text" placeholder="Ex: Óleo"></div>
+        <div><label class="fl">Categoria</label><select id="arraia-almox-cat" class="fi"><option>Alimentos</option><option>Bebidas</option><option>Descartáveis</option><option>Limpeza</option><option>Apoio</option><option>Decoração</option></select></div>
+      </div>
+      <div class="frow">
+        <div><label class="fl">Quantidade total</label><input id="arraia-almox-qtd" class="fi" type="number" min="0" step="0.01" placeholder="0"></div>
+        <div><label class="fl">Unidade</label><input id="arraia-almox-und" class="fi" type="text" placeholder="Ex: L, kg, un"></div>
+      </div>
+      <button class="btn btn-ouro" onclick="registrarItemAlmoxarifadoArraia()">➕ Adicionar ao almoxarifado</button>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <h3>📤 Destinar para barraca</h3>
+      <div class="frow">
+        <div><label class="fl first">Item do almoxarifado</label><select id="arraia-dest-item" class="fi" onchange="atualizarInfoDestinoArraia()"><option value="">Selecione...</option></select></div>
+        <div><label class="fl">Barraca</label><select id="arraia-dest-barraca" class="fi"><option value="">Selecione...</option></select></div>
+      </div>
+      <div class="frow">
+        <div><label class="fl">Quantidade</label><input id="arraia-dest-qtd" class="fi" type="number" min="0" step="0.01" placeholder="0"></div>
+        <div><label class="fl">Disponível livre</label><input id="arraia-dest-livre" class="fi" type="text" readonly placeholder="—"></div>
+      </div>
+      <button class="btn btn-cinza" onclick="destinarAlmoxParaBarracaArraia()">📦 Reservar para barraca</button>
+    </div>
+    <div id="arraia-almox-lista"><div class="empty">Carregando...</div></div>
+  </div>
+  <div id="sub-arraia-compras" class="screen" style="padding:12px 0 0">
+    <div class="card" style="margin-bottom:12px">
+      <h3>🛒 Pendências de compra</h3>
+      <p style="font-size:.79rem;color:var(--cinza);margin-bottom:10px">Aqui ficam os itens marcados como compra pelas barracas ou aquilo que faltou reservar do almoxarifado.</p>
+      <div id="arraia-compras-lista"><div class="empty">Carregando...</div></div>
+    </div>
+  </div>
+  <div id="sub-arraia-resumo" class="screen" style="padding:12px 0 0">
+    <div id="arraia-resumo-wrap"><div class="empty">Carregando...</div></div>
   </div>
 </div>
 
@@ -3291,6 +3361,24 @@ let TODOS_IRMAOS = ['Frei Fernando','Frei Gustavo','Frei Wesley',...NOVICOS];
 let mkFilter = 'todos', mkChecked = {};
 let consumoState = {}, reposicoes = [];
 let vehEmUso = {}, todosViagens = [];
+const STORAGE_ARRAIA = 'convento_arraia_v1';
+const ARRAIA_BARRACAS_PADRAO = [
+  {id:'pastel',nome:'Pastel'},
+  {id:'churrasco',nome:'Churrasco'},
+  {id:'fritas',nome:'Fritas'},
+  {id:'bebidas',nome:'Bebidas'},
+  {id:'vinhoquentao',nome:'Vinho Quente e Quentão'},
+  {id:'doces',nome:'Doces'},
+  {id:'cachorroquente',nome:'Cachorro Quente'},
+  {id:'milho',nome:'Milho'},
+  {id:'caldos',nome:'Caldos'}
+];
+const ARRAIA_DIAS_FESTA = [
+  {id:'sexta',label:'Sexta'},
+  {id:'sabado',label:'Sábado'},
+  {id:'domingo',label:'Domingo'}
+];
+let arraiaBarracaAtual = '';
 let veicPainelFiltroId = '';
 let veicManutFiltroId = '';
 let veicAbastFiltroId = '';
@@ -13810,7 +13898,7 @@ function modulosPermitidosPerfil(){
 
 function moduloPermitido(tela){
   const alvo=tela==='compras'?'dispensa':tela;
-  if(alvo==='dinheiro')return true;
+  if(alvo==='dinheiro' || alvo==='arraia')return true;
   const modulos=modulosPermitidosPerfil();
   if(!modulos||modulos.includes('*'))return true;
   return modulos.includes(alvo);
@@ -13824,7 +13912,7 @@ function resolverCredencialLogin(user=''){
   return CREDENCIAIS[chaveLoginCanonica(user)] || CREDENCIAIS[user] || null;
 }
 
-const HOME_MODULOS_VISIVEIS=['veiculos'];
+const HOME_MODULOS_VISIVEIS=['veiculos','arraia'];
 function moduloVisivelNaHome(modulo=''){
   const chave=String(modulo||'').trim().toLowerCase();
   if(!chave)return false;
@@ -13964,10 +14052,11 @@ ir = function(tela){
   document.getElementById('screen-'+tela).classList.add('active');
   document.getElementById('back-btn').style.display='block';
   atualizarBadgeMesHeader(tela);
-  const t={mural:'Mural',oficios:'Ofícios',dispensa:'Dispensa',dinheiro:'Dinheiro',veiculos:'Veículos',manutencao:'Manutenção',hospedaria:'Hospedaria',saude:'Saúde',compras:'Compras',loja:'Loja',contab:'Contabilidade',relatorio:'Prestação de Contas',assistente:'Assistente',config:'Config.',horta:'Horta'};
+  const t={mural:'Mural',oficios:'Ofícios',dispensa:'Dispensa',dinheiro:'Dinheiro',veiculos:'Veículos',arraia:'Arraiá',manutencao:'Manutenção',hospedaria:'Hospedaria',saude:'Saúde',compras:'Compras',loja:'Loja',contab:'Contabilidade',relatorio:'Prestação de Contas',assistente:'Assistente',config:'Config.',horta:'Horta'};
   document.getElementById('hdr-title').textContent=t[tela]||'Noviciado';
   if(tela==='relatorio')atualizarRelatorio();
   if(tela==='veiculos'){garantirSubAbaAtiva('veiculos','painel');renderVeiculos();}
+  if(tela==='arraia'){garantirSubAbaAtiva('arraia','barracas');carregarArraia();}
   if(tela==='mural')carregarMural();
   if(tela==='oficios'){garantirSubAbaAtiva('oficios','escala');carregarEscalaHoje();}
   if(tela==='dispensa'){garantirSubAbaAtiva('dispensa','cozinha');carregarDispensa('cozinha');}
@@ -15222,6 +15311,335 @@ ir = function(tela){
   __irOriginalDispensaV5(tela);
   if((tela||'')==='dispensa')setTimeout(()=>{abrirDispensaHome();},0);
 };
+
+function arraiaUid(prefix='ar'){
+  return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,8)}`;
+}
+function normalizarEstadoArraia(raw){
+  const base=(raw&&typeof raw==='object')?raw:{};
+  const barracasBase=Array.isArray(base.barracas)?base.barracas:[];
+  const barracas=ARRAIA_BARRACAS_PADRAO.map(padrao=>{
+    const atual=barracasBase.find(b=>String(b.id||'')===padrao.id)||{};
+    return {
+      id:padrao.id,
+      nome:padrao.nome,
+      responsavel:atual.responsavel||'',
+      itens:Array.isArray(atual.itens)?atual.itens.map(item=>({
+        id:item.id||arraiaUid('item'),
+        nome:String(item.nome||'').trim(),
+        unidade:String(item.unidade||'un').trim()||'un',
+        quantidade:moneyNumber(item.quantidade||0),
+        origem:item.origem||'pendente',
+        status:item.status||'pendente',
+        almoxarifado_id:item.almoxarifado_id||'',
+        compra_id:item.compra_id||'',
+        entregue_qtd:moneyNumber(item.entregue_qtd||0),
+        consumos:{
+          sexta:moneyNumber(item?.consumos?.sexta||0),
+          sabado:moneyNumber(item?.consumos?.sabado||0),
+          domingo:moneyNumber(item?.consumos?.domingo||0)
+        },
+        devolvido_qtd:moneyNumber(item.devolvido_qtd||0)
+      })).filter(item=>item.nome):[]
+    };
+  });
+  return {
+    barracas,
+    almoxarifado:Array.isArray(base.almoxarifado)?base.almoxarifado.map(item=>({
+      id:item.id||arraiaUid('alm'),
+      nome:String(item.nome||'').trim(),
+      categoria:String(item.categoria||'Alimentos').trim()||'Alimentos',
+      unidade:String(item.unidade||'un').trim()||'un',
+      quantidade_total:moneyNumber(item.quantidade_total||0),
+      reservas:Array.isArray(item.reservas)?item.reservas.map(r=>({
+        barraca_id:r.barraca_id||'',
+        quantidade:moneyNumber(r.quantidade||0),
+        item_id:r.item_id||''
+      })).filter(r=>r.barraca_id&&r.quantidade>0):[]
+    })).filter(item=>item.nome):[],
+    compras:Array.isArray(base.compras)?base.compras.map(item=>({
+      id:item.id||arraiaUid('cmp'),
+      barraca_id:item.barraca_id||'',
+      item_id:item.item_id||'',
+      nome:String(item.nome||'').trim(),
+      unidade:String(item.unidade||'un').trim()||'un',
+      quantidade:moneyNumber(item.quantidade||0),
+      status:item.status||'pendente'
+    })).filter(item=>item.nome):[]
+  };
+}
+function getArraiaState(){
+  try{return normalizarEstadoArraia(JSON.parse(localStorage.getItem(STORAGE_ARRAIA)||'{}'));}
+  catch{return normalizarEstadoArraia({});}
+}
+function setArraiaState(st){
+  localStorage.setItem(STORAGE_ARRAIA, JSON.stringify(normalizarEstadoArraia(st)));
+}
+function getArraiaBarracaById(id=''){
+  return getArraiaState().barracas.find(b=>b.id===id)||null;
+}
+function getArraiaLivreAlmox(item){
+  const total=moneyNumber(item?.quantidade_total||0);
+  const reservado=(item?.reservas||[]).reduce((acc,r)=>acc+moneyNumber(r.quantidade||0),0);
+  return Math.max(0,moneyNumber(total-reservado));
+}
+function getArraiaResumoBarraca(barraca){
+  const itens=barraca?.itens||[];
+  return {
+    total:itens.length,
+    pendentes:itens.filter(i=>i.status==='pendente').length,
+    reservados:itens.filter(i=>i.status==='reservado').length,
+    entregues:itens.filter(i=>i.status==='entregue').length,
+    garantidos:itens.filter(i=>['garantido','comprado','devolvido'].includes(i.status)).length
+  };
+}
+function getArraiaConsumoTotalDia(dia='sexta'){
+  return getArraiaState().barracas.reduce((acc,b)=>acc+(b.itens||[]).reduce((s,item)=>s+moneyNumber(item?.consumos?.[dia]||0),0),0);
+}
+function getArraiaTotaisResumo(){
+  const st=getArraiaState();
+  const barracas=st.barracas||[];
+  return {
+    totalItens:barracas.reduce((acc,b)=>acc+(b.itens?.length||0),0),
+    reservados:barracas.reduce((acc,b)=>acc+b.itens.filter(i=>i.status==='reservado').length,0),
+    entregues:barracas.reduce((acc,b)=>acc+b.itens.filter(i=>i.status==='entregue').length,0),
+    comprasPend:(st.compras||[]).filter(c=>c.status==='pendente').length
+  };
+}
+function popularSelectArraiaBarracas(){
+  const st=getArraiaState();
+  ['arraia-barraca-select','arraia-dest-barraca'].forEach(id=>{
+    const el=document.getElementById(id); if(!el)return;
+    const current=el.value;
+    const first=id==='arraia-barraca-select' ? '<option value="">Selecione a barraca...</option>' : '<option value="">Selecione...</option>';
+    el.innerHTML=first+st.barracas.map(b=>`<option value="${b.id}">${escapeHtml(b.nome)}</option>`).join('');
+    if(current && st.barracas.some(b=>b.id===current))el.value=current;
+  });
+}
+function popularSelectArraiaItensAlmox(){
+  const st=getArraiaState();
+  const el=document.getElementById('arraia-dest-item'); if(!el)return;
+  const current=el.value;
+  el.innerHTML='<option value="">Selecione...</option>'+st.almoxarifado.map(item=>`<option value="${item.id}">${escapeHtml(item.nome)} (${escapeHtml(item.unidade)})</option>`).join('');
+  if(current && st.almoxarifado.some(item=>item.id===current))el.value=current;
+  atualizarInfoDestinoArraia();
+}
+function atualizarInfoDestinoArraia(){
+  const livre=document.getElementById('arraia-dest-livre'); if(!livre)return;
+  const st=getArraiaState();
+  const item=st.almoxarifado.find(i=>i.id===document.getElementById('arraia-dest-item')?.value);
+  livre.value=item?`${getArraiaLivreAlmox(item).toLocaleString('pt-BR')} ${item.unidade}`:'—';
+}
+function setArraiaBarracaAtual(id=''){
+  arraiaBarracaAtual=id||'';
+  renderArraiaBarracas();
+}
+function abrirPainelBarracaArraia(id=''){
+  const select=document.getElementById('arraia-barraca-select');
+  if(select)select.value=id;
+  arraiaBarracaAtual=id||'';
+  renderArraiaBarracas();
+}
+function toggleOrigemItemArraia(){
+  const origem=document.getElementById('arraia-item-origem')?.value||'pendente';
+  const manual=document.getElementById('arraia-item-manual-wrap');
+  const almox=document.getElementById('arraia-item-almox-wrap');
+  if(manual)manual.style.display=origem==='almoxarifado'?'none':'';
+  if(almox)almox.style.display=origem==='almoxarifado'?'':'none';
+}
+function registrarItemBarracaArraia(){
+  if(!arraiaBarracaAtual){showToast('Selecione a barraca primeiro.');return;}
+  const origem=document.getElementById('arraia-item-origem')?.value||'pendente';
+  const qtd=moneyNumber(document.getElementById('arraia-item-qtd')?.value||0);
+  const unidade=(document.getElementById('arraia-item-und')?.value||'un').trim()||'un';
+  if(qtd<=0){showToast('Informe a quantidade do item.');return;}
+  const st=getArraiaState();
+  const barraca=st.barracas.find(b=>b.id===arraiaBarracaAtual); if(!barraca)return;
+  let nome=(document.getElementById('arraia-item-nome')?.value||'').trim();
+  let almoxId=''; let status='pendente'; let compraId='';
+  if(origem==='almoxarifado'){
+    almoxId=document.getElementById('arraia-item-almox')?.value||'';
+    const alm=st.almoxarifado.find(i=>i.id===almoxId);
+    if(!alm){showToast('Selecione um item do almoxarifado.');return;}
+    nome=alm.nome;
+    if(getArraiaLivreAlmox(alm)<qtd){showToast('Não há saldo livre suficiente no almoxarifado.');return;}
+    status='reservado';
+  }else if(origem==='doacao'){
+    if(!nome){showToast('Informe o item.');return;}
+    status='garantido';
+  }else if(origem==='comprar'){
+    if(!nome){showToast('Informe o item.');return;}
+    status='compra_pendente';
+    compraId=arraiaUid('cmp');
+    st.compras.push({id:compraId,barraca_id:barraca.id,item_id:'',nome,unidade,quantidade:qtd,status:'pendente'});
+  }else{
+    if(!nome){showToast('Informe o item.');return;}
+  }
+  const itemId=arraiaUid('item');
+  barraca.itens.push({id:itemId,nome,unidade,quantidade:qtd,origem,status,almoxarifado_id:almoxId,compra_id:compraId,entregue_qtd:0,consumos:{sexta:0,sabado:0,domingo:0},devolvido_qtd:0});
+  if(origem==='almoxarifado'){
+    const alm=st.almoxarifado.find(i=>i.id===almoxId);
+    alm.reservas.push({barraca_id:barraca.id,quantidade:qtd,item_id:itemId});
+  }
+  setArraiaState(st);
+  ['arraia-item-nome','arraia-item-qtd'].forEach(id=>{const el=document.getElementById(id); if(el)el.value='';});
+  const und=document.getElementById('arraia-item-und'); if(und)und.value='un';
+  const origemEl=document.getElementById('arraia-item-origem'); if(origemEl)origemEl.value='pendente';
+  const almSel=document.getElementById('arraia-item-almox'); if(almSel)almSel.value='';
+  toggleOrigemItemArraia();
+  carregarArraia();
+  showToast('Item salvo na barraca.');
+}
+function entregarItemBarracaArraia(itemId=''){
+  const st=getArraiaState();
+  const barraca=st.barracas.find(b=>(b.itens||[]).some(i=>i.id===itemId)); if(!barraca)return;
+  const item=barraca.itens.find(i=>i.id===itemId); if(!item)return;
+  if(item.status!=='reservado'){showToast('Este item não está reservado.');return;}
+  const alm=st.almoxarifado.find(i=>i.id===item.almoxarifado_id);
+  if(!alm){showToast('Item do almoxarifado não encontrado.');return;}
+  const reserva=(alm.reservas||[]).find(r=>r.item_id===item.id&&r.barraca_id===barraca.id);
+  const qtd=moneyNumber(reserva?.quantidade||item.quantidade||0);
+  alm.quantidade_total=Math.max(0,moneyNumber(alm.quantidade_total||0)-qtd);
+  alm.reservas=(alm.reservas||[]).filter(r=>!(r.item_id===item.id&&r.barraca_id===barraca.id));
+  item.status='entregue';
+  item.entregue_qtd=qtd;
+  setArraiaState(st);
+  carregarArraia();
+  showToast('Item entregue para a barraca.');
+}
+function atualizarConsumoItemArraia(itemId=''){
+  const st=getArraiaState();
+  const barraca=st.barracas.find(b=>(b.itens||[]).some(i=>i.id===itemId)); if(!barraca)return;
+  const item=barraca.itens.find(i=>i.id===itemId); if(!item)return;
+  ARRAIA_DIAS_FESTA.forEach(d=>item.consumos[d.id]=moneyNumber(document.getElementById(`arraia-consumo-${d.id}-${itemId}`)?.value||0));
+  item.devolvido_qtd=moneyNumber(document.getElementById(`arraia-devolvido-${itemId}`)?.value||0);
+  setArraiaState(st);
+  renderArraiaResumo();
+  showToast('Consumo atualizado.');
+}
+function devolverSobraArraia(itemId=''){
+  const st=getArraiaState();
+  const barraca=st.barracas.find(b=>(b.itens||[]).some(i=>i.id===itemId)); if(!barraca)return;
+  const item=barraca.itens.find(i=>i.id===itemId); if(!item)return;
+  const qtd=moneyNumber(document.getElementById(`arraia-devolvido-${itemId}`)?.value||item.devolvido_qtd||0);
+  if(qtd<=0){showToast('Informe a quantidade da sobra.');return;}
+  if(item.almoxarifado_id){
+    const alm=st.almoxarifado.find(i=>i.id===item.almoxarifado_id);
+    if(alm)alm.quantidade_total=moneyNumber(alm.quantidade_total||0)+qtd;
+  }
+  item.devolvido_qtd=qtd;
+  item.status='devolvido';
+  setArraiaState(st);
+  carregarArraia();
+  showToast('Sobra devolvida ao almoxarifado.');
+}
+function registrarItemAlmoxarifadoArraia(){
+  const nome=(document.getElementById('arraia-almox-nome')?.value||'').trim();
+  const categoria=(document.getElementById('arraia-almox-cat')?.value||'Alimentos').trim();
+  const qtd=moneyNumber(document.getElementById('arraia-almox-qtd')?.value||0);
+  const unidade=(document.getElementById('arraia-almox-und')?.value||'un').trim()||'un';
+  if(!nome||qtd<=0){showToast('Informe item e quantidade do almoxarifado.');return;}
+  const st=getArraiaState();
+  const existente=st.almoxarifado.find(i=>String(i.nome||'').trim().toLowerCase()===nome.toLowerCase() && String(i.unidade||'un').trim().toLowerCase()===unidade.toLowerCase());
+  if(existente){
+    existente.quantidade_total=moneyNumber(existente.quantidade_total||0)+qtd;
+    existente.categoria=categoria||existente.categoria;
+  }else{
+    st.almoxarifado.push({id:arraiaUid('alm'),nome,categoria,unidade,quantidade_total:qtd,reservas:[]});
+  }
+  setArraiaState(st);
+  ['arraia-almox-nome','arraia-almox-qtd','arraia-almox-und'].forEach(id=>{const el=document.getElementById(id); if(el)el.value='';});
+  const cat=document.getElementById('arraia-almox-cat'); if(cat)cat.value='Alimentos';
+  renderArraiaAlmoxarifado();
+  showToast('Item adicionado ao almoxarifado.');
+}
+function destinarAlmoxParaBarracaArraia(){
+  const itemId=document.getElementById('arraia-dest-item')?.value||'';
+  const barracaId=document.getElementById('arraia-dest-barraca')?.value||'';
+  const qtd=moneyNumber(document.getElementById('arraia-dest-qtd')?.value||0);
+  if(!itemId||!barracaId||qtd<=0){showToast('Selecione item, barraca e quantidade.');return;}
+  const st=getArraiaState();
+  const alm=st.almoxarifado.find(i=>i.id===itemId);
+  const barraca=st.barracas.find(b=>b.id===barracaId);
+  if(!alm||!barraca)return;
+  if(getArraiaLivreAlmox(alm)<qtd){showToast('Saldo livre insuficiente para esta reserva.');return;}
+  const itemBarraca={id:arraiaUid('item'),nome:alm.nome,unidade:alm.unidade,quantidade:qtd,origem:'almoxarifado',status:'reservado',almoxarifado_id:alm.id,compra_id:'',entregue_qtd:0,consumos:{sexta:0,sabado:0,domingo:0},devolvido_qtd:0};
+  barraca.itens.push(itemBarraca);
+  alm.reservas.push({barraca_id:barraca.id,quantidade:qtd,item_id:itemBarraca.id});
+  setArraiaState(st);
+  const q=document.getElementById('arraia-dest-qtd'); if(q)q.value='';
+  carregarArraia();
+  showToast('Item reservado para a barraca.');
+}
+function marcarCompraArraia(compraId=''){
+  const st=getArraiaState();
+  const compra=st.compras.find(c=>c.id===compraId); if(!compra)return;
+  compra.status='comprado';
+  st.barracas.forEach(b=>(b.itens||[]).forEach(item=>{ if(item.compra_id===compraId)item.status='comprado'; }));
+  setArraiaState(st);
+  carregarArraia();
+  showToast('Compra marcada como resolvida.');
+}
+function renderArraiaBarracasCards(){
+  const box=document.getElementById('arraia-barracas-cards'); if(!box)return;
+  const st=getArraiaState();
+  box.innerHTML=st.barracas.map(b=>{
+    const r=getArraiaResumoBarraca(b);
+    return `<button type="button" class="card" style="margin:0;text-align:left;padding:12px;border-radius:16px;cursor:pointer;background:${arraiaBarracaAtual===b.id?'var(--ouro-pale)':'#fff'}" onclick="abrirPainelBarracaArraia('${b.id}')"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><strong style="font-family:'Lora',serif;color:var(--marrom)">${escapeHtml(b.nome)}</strong><span class="pill ${r.pendentes?'pr-p':'pr-v'}">${r.pendentes?`${r.pendentes} pend.`:'OK'}</span></div><div style="font-size:.74rem;color:var(--cinza);margin-top:6px">${r.total} item(ns) · ${r.reservados} reservados · ${r.entregues} entregues</div></button>`;
+  }).join('');
+}
+function renderArraiaPainelBarraca(barraca){
+  const box=document.getElementById('arraia-barraca-painel'); if(!box)return;
+  if(!barraca){box.innerHTML='<div class="empty">Selecione uma barraca para começar.</div>'; return;}
+  const resumo=getArraiaResumoBarraca(barraca);
+  const st=getArraiaState();
+  const almOpts=st.almoxarifado.map(item=>`<option value="${item.id}">${escapeHtml(item.nome)} · livre ${getArraiaLivreAlmox(item).toLocaleString('pt-BR')} ${escapeHtml(item.unidade)}</option>`).join('');
+  box.innerHTML=`<div class="card" style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap"><div><h3>🎪 ${escapeHtml(barraca.nome)}</h3><div style="font-size:.76rem;color:var(--cinza)">Planejamento, reserva do almoxarifado, compra e entrega real da barraca.</div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><span class="pill">${resumo.total} itens</span><span class="pill ${resumo.pendentes?'pr-p':'pr-v'}">${resumo.pendentes} pendente(s)</span><span class="pill">${resumo.reservados} reservado(s)</span><span class="pill">${resumo.entregues} entregue(s)</span></div></div></div>
+    <div class="card" style="margin-bottom:12px"><h3>➕ Adicionar item à barraca</h3><div class="frow"><div><label class="fl first">Origem</label><select id="arraia-item-origem" class="fi" onchange="toggleOrigemItemArraia()"><option value="pendente">Definir depois</option><option value="doacao">Doação</option><option value="almoxarifado">Almoxarifado</option><option value="comprar">Comprar</option></select></div><div><label class="fl">Quantidade</label><input id="arraia-item-qtd" class="fi" type="number" min="0" step="0.01" placeholder="0"></div></div><div class="frow"><div id="arraia-item-manual-wrap"><label class="fl">Item</label><input id="arraia-item-nome" class="fi" type="text" placeholder="Ex: Embalagem grande"></div><div id="arraia-item-almox-wrap" style="display:none"><label class="fl">Item do almoxarifado</label><select id="arraia-item-almox" class="fi"><option value="">Selecione...</option>${almOpts}</select></div><div><label class="fl">Unidade</label><input id="arraia-item-und" class="fi" type="text" value="un"></div></div><button class="btn btn-ouro" onclick="registrarItemBarracaArraia()">Salvar item da barraca</button></div>
+    <div class="card"><h3>📋 Itens da barraca</h3>${barraca.itens.length?`<div style="display:flex;flex-direction:column;gap:10px">${barraca.itens.map(item=>{const origemMap={pendente:'Pendente',doacao:'Doação',almoxarifado:'Almoxarifado',comprar:'Comprar'}; const statusMap={pendente:'Pendente',garantido:'Garantido',reservado:'Reservado',compra_pendente:'Compra pendente',comprado:'Compra resolvida',entregue:'Entregue',devolvido:'Devolvido'}; return `<div style="padding:12px;border:1px solid #efe4cf;border-radius:16px;background:#fffaf2"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;flex-wrap:wrap"><div><strong style="color:var(--marrom)">${escapeHtml(item.nome)}</strong><div style="font-size:.75rem;color:var(--cinza)">${item.quantidade.toLocaleString('pt-BR')} ${escapeHtml(item.unidade)} · ${origemMap[item.origem]||'—'}</div></div><span class="pill ${item.status==='compra_pendente'||item.status==='pendente'?'pr-p':'pr-v'}">${statusMap[item.status]||item.status}</span></div>${item.status==='reservado'?`<div style="margin-top:10px"><button type="button" class="btn-sm bsv" onclick="entregarItemBarracaArraia('${item.id}')">📤 Entregar para a barraca</button></div>`:''}${item.status==='entregue'||item.status==='devolvido'?`<div style="margin-top:10px;display:grid;gap:8px"><div class="frow">${ARRAIA_DIAS_FESTA.map(d=>`<div><label class="fl">${d.label}</label><input id="arraia-consumo-${d.id}-${item.id}" class="fi" type="number" min="0" step="0.01" value="${moneyNumber(item?.consumos?.[d.id]||0)}"></div>`).join('')}</div><div class="frow"><div><label class="fl">Sobra devolvida</label><input id="arraia-devolvido-${item.id}" class="fi" type="number" min="0" step="0.01" value="${moneyNumber(item.devolvido_qtd||0)}"></div><div style="display:flex;align-items:end;gap:8px;flex-wrap:wrap"><button type="button" class="btn-sm bsv" onclick="atualizarConsumoItemArraia('${item.id}')">💾 Salvar consumo</button>${item.status!=='devolvido'?`<button type="button" class="btn-sm bsc" onclick="devolverSobraArraia('${item.id}')">↩ Devolver ao almoxarifado</button>`:''}</div></div></div>`:''}</div>`;}).join('')}</div>`:'<div class="empty">Nenhum item cadastrado nesta barraca.</div>'}</div>`;
+  toggleOrigemItemArraia();
+}
+function renderArraiaBarracas(){
+  popularSelectArraiaBarracas();
+  renderArraiaBarracasCards();
+  renderArraiaPainelBarraca(getArraiaBarracaById(arraiaBarracaAtual));
+}
+function renderArraiaAlmoxarifado(){
+  popularSelectArraiaBarracas();
+  popularSelectArraiaItensAlmox();
+  const box=document.getElementById('arraia-almox-lista'); if(!box)return;
+  const st=getArraiaState();
+  if(!st.almoxarifado.length){box.innerHTML='<div class="empty">Nenhum item cadastrado no almoxarifado.</div>'; return;}
+  box.innerHTML=st.almoxarifado.map(item=>{
+    const reservado=(item.reservas||[]).reduce((acc,r)=>acc+moneyNumber(r.quantidade||0),0);
+    const livre=getArraiaLivreAlmox(item);
+    const reservasTxt=(item.reservas||[]).length?`<div style="font-size:.74rem;color:var(--cinza);margin-top:6px">${item.reservas.map(r=>`${escapeHtml(getArraiaBarracaById(r.barraca_id)?.nome||'Barraca')} · ${moneyNumber(r.quantidade).toLocaleString('pt-BR')} ${escapeHtml(item.unidade)}`).join(' · ')}</div>`:'';
+    return `<div class="card" style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap"><div><h3>${escapeHtml(item.nome)}</h3><div style="font-size:.75rem;color:var(--cinza)">${escapeHtml(item.categoria)} · ${escapeHtml(item.unidade)}</div></div><span class="pill">${moneyNumber(item.quantidade_total||0).toLocaleString('pt-BR')} ${escapeHtml(item.unidade)}</span></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-top:10px"><div class="card" style="margin:0;padding:10px;background:#fffaf2"><strong>Total</strong><div>${moneyNumber(item.quantidade_total||0).toLocaleString('pt-BR')} ${escapeHtml(item.unidade)}</div></div><div class="card" style="margin:0;padding:10px;background:#fffaf2"><strong>Reservado</strong><div>${reservado.toLocaleString('pt-BR')} ${escapeHtml(item.unidade)}</div></div><div class="card" style="margin:0;padding:10px;background:#fffaf2"><strong>Livre</strong><div>${livre.toLocaleString('pt-BR')} ${escapeHtml(item.unidade)}</div></div></div>${reservasTxt}<div style="margin-top:10px"><button type="button" class="btn-sm bsc" onclick="(function(){document.getElementById('arraia-dest-item').value='${item.id}';atualizarInfoDestinoArraia();document.getElementById('arraia-dest-qtd').focus();document.getElementById('sub-arraia-almox').scrollIntoView({behavior:'smooth',block:'start'});})()">📦 Destinar para barraca</button></div></div>`;
+  }).join('');
+}
+function renderArraiaCompras(){
+  const box=document.getElementById('arraia-compras-lista'); if(!box)return;
+  const st=getArraiaState();
+  if(!st.compras.length){box.innerHTML='<div class="empty">Nenhuma pendência de compra no momento.</div>'; return;}
+  box.innerHTML=`<div style="display:flex;flex-direction:column;gap:10px">${st.compras.map(compra=>{const barraca=getArraiaBarracaById(compra.barraca_id); const done=compra.status!=='pendente'; return `<div style="padding:12px;border:1px solid #efe4cf;border-radius:16px;background:#fffaf2"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><div><strong style="color:var(--marrom)">${escapeHtml(compra.nome)}</strong><div style="font-size:.75rem;color:var(--cinza)">${moneyNumber(compra.quantidade).toLocaleString('pt-BR')} ${escapeHtml(compra.unidade)} · ${escapeHtml(barraca?.nome||'Barraca')}</div></div><span class="pill ${done?'pr-v':'pr-p'}">${done?'Comprado':'Pendente'}</span></div>${!done?`<div style="margin-top:10px"><button type="button" class="btn-sm bsv" onclick="marcarCompraArraia('${compra.id}')">✅ Marcar como comprado</button></div>`:''}</div>`;}).join('')}</div>`;
+}
+function renderArraiaResumo(){
+  const box=document.getElementById('arraia-resumo-wrap'); if(!box)return;
+  const totais=getArraiaTotaisResumo();
+  const sexta=getArraiaConsumoTotalDia('sexta');
+  const sabado=getArraiaConsumoTotalDia('sabado');
+  const domingo=getArraiaConsumoTotalDia('domingo');
+  const barracas=getArraiaState().barracas;
+  box.innerHTML=`<div class="card" style="margin-bottom:12px"><h3>📊 Resumo do Arraiá</h3><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px"><div class="card" style="margin:0;padding:12px;background:var(--ouro-pale)"><strong>Itens planejados</strong><div style="font-size:1.4rem;font-weight:800;color:var(--marrom)">${totais.totalItens}</div></div><div class="card" style="margin:0;padding:12px;background:var(--ouro-pale)"><strong>Reservados</strong><div style="font-size:1.4rem;font-weight:800;color:var(--marrom)">${totais.reservados}</div></div><div class="card" style="margin:0;padding:12px;background:var(--ouro-pale)"><strong>Entregues</strong><div style="font-size:1.4rem;font-weight:800;color:var(--marrom)">${totais.entregues}</div></div><div class="card" style="margin:0;padding:12px;background:var(--ouro-pale)"><strong>Compras pendentes</strong><div style="font-size:1.4rem;font-weight:800;color:var(--marrom)">${totais.comprasPend}</div></div></div></div><div class="card" style="margin-bottom:12px"><h3>🗓️ Consumo por dia da festa</h3><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px"><div class="card" style="margin:0;padding:12px;background:#fffaf2"><strong>Sexta</strong><div style="font-size:1.25rem;font-weight:800;color:var(--marrom)">${sexta.toLocaleString('pt-BR')}</div></div><div class="card" style="margin:0;padding:12px;background:#fffaf2"><strong>Sábado</strong><div style="font-size:1.25rem;font-weight:800;color:var(--marrom)">${sabado.toLocaleString('pt-BR')}</div></div><div class="card" style="margin:0;padding:12px;background:#fffaf2"><strong>Domingo</strong><div style="font-size:1.25rem;font-weight:800;color:var(--marrom)">${domingo.toLocaleString('pt-BR')}</div></div></div></div><div class="card"><h3>🎪 Situação das barracas</h3><div style="display:flex;flex-direction:column;gap:8px">${barracas.map(b=>{const r=getArraiaResumoBarraca(b); return `<div style="padding:10px 12px;border:1px solid #efe4cf;border-radius:14px;background:#fffaf2;display:flex;justify-content:space-between;gap:10px;align-items:center"><div><strong style="color:var(--marrom)">${escapeHtml(b.nome)}</strong><div style="font-size:.75rem;color:var(--cinza)">${r.total} itens · ${r.pendentes} pendentes · ${r.entregues} entregues</div></div><button type="button" class="btn-sm bsc" onclick="stab('arraia','barracas',document.querySelector('#screen-arraia .tab-btn'));abrirPainelBarracaArraia('${b.id}')">Abrir barraca</button></div>`;}).join('')}</div></div>`;
+}
+function carregarArraia(){
+  popularSelectArraiaBarracas();
+  popularSelectArraiaItensAlmox();
+  renderArraiaBarracas();
+  renderArraiaAlmoxarifado();
+  renderArraiaCompras();
+  renderArraiaResumo();
+}
 
 // === BOOTSTRAP === inicializa o app
 (async()=>{
