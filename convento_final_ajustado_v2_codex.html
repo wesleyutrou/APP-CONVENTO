@@ -13824,6 +13824,13 @@ function resolverCredencialLogin(user=''){
   return CREDENCIAIS[chaveLoginCanonica(user)] || CREDENCIAIS[user] || null;
 }
 
+const HOME_MODULOS_VISIVEIS=['veiculos'];
+function moduloVisivelNaHome(modulo=''){
+  const chave=String(modulo||'').trim().toLowerCase();
+  if(!chave)return false;
+  return HOME_MODULOS_VISIVEIS.includes(chave);
+}
+
 function aplicarPermissoesPerfil(){
   const cards=document.querySelectorAll('.home-grid .hcard');
   cards.forEach(card=>{
@@ -13831,6 +13838,10 @@ function aplicarPermissoesPerfil(){
     const onclick=card.getAttribute('onclick')||'';
     const match=onclick.match(/ir\('([^']+)'\)/);
     const modulo=match?match[1]:'';
+    if(modulo && !moduloVisivelNaHome(modulo)){
+      card.style.display='none';
+      return;
+    }
     if(card.classList.contains('admin-only')){
       card.style.display=perfilAtual?.tipo==='admin'?'':'none';
       return;
@@ -13853,14 +13864,15 @@ function aplicarPermissoesPerfil(){
   const resumo=document.getElementById('resumo-home');
   const alertas=document.getElementById('alertas-painel');
   const isFrei=perfilAtual?.tipo==='admin';
-  if(resumo)resumo.style.display=isFrei?'':'none';
-  if(alertas)alertas.style.display=isFrei?'':'none';
+  if(resumo)resumo.style.display='none';
+  if(alertas)alertas.style.display='none';
   // Sidebar: filtra side-items pelo mesmo critério
   const sideItems=document.querySelectorAll('#home-sidebar .side-item');
   sideItems.forEach(it=>{
     const modulo=it.dataset.modulo||'';
     const isAdminOnly=it.classList.contains('admin-only');
     const isFreiOnly=it.classList.contains('frei-only');
+    if(modulo && !moduloVisivelNaHome(modulo)){it.style.display='none';return;}
     if(isAdminOnly){it.style.display=isFrei?'':'none';return;}
     if(isFreiOnly){it.style.display=isFrei?'':'none';return;}
     if(modulo && !moduloPermitido(modulo)){it.style.display='none';return;}
@@ -13873,6 +13885,8 @@ function aplicarPermissoesPerfil(){
   });
   // Cards do painel: aplicar mesma regra
   document.querySelectorAll('#home-painel .dash-card').forEach(c=>{
+    const modulo=c.dataset.modulo||'';
+    if(modulo && !moduloVisivelNaHome(modulo)){c.style.display='none';return;}
     if(c.classList.contains('admin-only')){c.style.display=isFrei?'':'none';return;}
     if(c.classList.contains('frei-only')){c.style.display=isFrei?'':'none';return;}
     c.style.display='';
