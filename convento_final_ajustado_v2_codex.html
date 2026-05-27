@@ -5151,7 +5151,7 @@ function todosMotoristasVeiculo(){
     const atual=mapa.get(chave)||{nome:nomeLimpo,tipo,van:false};
     atual.nome=atual.nome||nomeLimpo;
     atual.tipo=atual.tipo||tipo;
-    atual.van=!!(atual.van||van||tipo==='admin');
+    atual.van=!!(atual.van||van);
     mapa.set(chave,atual);
   };
   (IRMAOS_DB||[]).forEach(i=>{
@@ -5161,7 +5161,7 @@ function todosMotoristasVeiculo(){
   Object.values(CREDENCIAIS||{}).forEach(c=>{
     const nome=String(c?.label||'').trim();
     const tipo=String(c?.tipo||'').toLowerCase();
-    if(/^(Frei|Irmão)\s/i.test(nome))add(nome,tipo,tipo==='admin');
+    if(/^(Frei|Irmão)\s/i.test(nome))add(nome,tipo,false);
   });
   return [...mapa.values()].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
 }
@@ -5258,7 +5258,7 @@ function renderVeiculos(){
     if(uso){stCls='s-uso';badgeCls='b-uso';badgeTxt='Em uso';}
     else if(status.tipo==='manutencao'){stCls='s-manut';badgeCls='b-manut';badgeTxt='Manutenção';}
     else if(status.tipo==='conserto'){stCls='s-conserto';badgeCls='b-conserto';badgeTxt='Conserto';}
-    const motorOpts=motoristas.filter(i=>v.van?(i.van||i.tipo==='admin'||i.tipo==='frei'):true).map(i=>`<option>${i.nome}</option>`).join('');
+    const motorOpts=motoristas.filter(i=>v.van?i.van===true:true).map(i=>`<option>${i.nome}</option>`).join('');
     const div=document.createElement('div');
     div.className='veh-fcard '+stCls;
     div.id='vfc-'+v.id;
@@ -5389,7 +5389,7 @@ function podeGerirHistoricoMotoristas(){
 let veicHistEditandoId='';
 function motoristasPermitidosVeiculo(veicId=''){
   const v=(VEICULOS_DATA||[]).find(item=>item.id===veicId)||{};
-  return todosMotoristasVeiculo().filter(i=>v.van?(i.van||i.tipo==='admin'||i.tipo==='frei'):true);
+  return todosMotoristasVeiculo().filter(i=>v.van?i.van===true:true);
 }
 function getViagemEdicaoAtual(){
   return {
