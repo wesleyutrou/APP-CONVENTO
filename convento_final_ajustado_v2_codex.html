@@ -807,6 +807,34 @@ header p{font-size:.62rem;color:rgba(201,151,58,.65);margin-top:1px;}
 .tabs::-webkit-scrollbar{display:none;}
 .tab-btn{flex:1;min-width:52px;padding:9px 4px;background:none;border:none;color:rgba(201,151,58,.5);font-family:'Source Sans 3',sans-serif;font-size:.62rem;font-weight:600;cursor:pointer;text-transform:uppercase;letter-spacing:.03em;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s;white-space:nowrap;}
 .tab-btn.active{color:var(--ouro);border-bottom-color:var(--ouro);}
+#screen-arraia .tabs{
+  display:flex;
+  flex-wrap:nowrap;
+  gap:8px;
+  padding:8px;
+  overflow-x:auto;
+  overflow-y:hidden;
+  scrollbar-width:none;
+}
+#screen-arraia .tabs::-webkit-scrollbar{display:none}
+#screen-arraia .tabs .tab-btn{
+  flex:0 0 auto;
+  min-width:max-content;
+  margin-bottom:0;
+  border-bottom:none;
+  border-radius:12px;
+  padding:10px 12px;
+  white-space:nowrap;
+  line-height:1.15;
+  font-size:.72rem;
+  letter-spacing:0;
+  background:rgba(255,255,255,.04);
+}
+#screen-arraia .tabs .tab-btn.active{
+  color:#fff3d6;
+  background:rgba(201,151,58,.16);
+  box-shadow:inset 0 0 0 1px rgba(201,151,58,.28);
+}
 #screen-veiculos .tabs.veh-tabs{display:flex!important;flex-wrap:nowrap!important;overflow-x:auto!important;overflow-y:hidden!important;gap:8px;padding:8px;scrollbar-width:none;-ms-overflow-style:none}
 #screen-veiculos .tabs.veh-tabs::-webkit-scrollbar{display:none}
 #screen-veiculos .tabs.veh-tabs .tab-btn{flex:0 0 auto;white-space:nowrap!important;line-height:1.15;min-width:max-content;padding:10px 12px;font-size:.72rem}
@@ -839,7 +867,27 @@ header p{font-size:.62rem;color:rgba(201,151,58,.65);margin-top:1px;}
   box-shadow:inset 0 0 0 1px rgba(201,151,58,.28);
 }
 @media (max-width:560px){
+  #screen-veiculos,
+  #screen-arraia{padding-bottom:92px}
+  #screen-veiculos .tabs,
+  #screen-arraia .tabs{
+    position:fixed;
+    left:12px;
+    right:12px;
+    bottom:calc(10px + env(safe-area-inset-bottom));
+    z-index:90;
+    border-radius:18px;
+    border:1px solid rgba(201,151,58,.22);
+    background:rgba(44,24,0,.96);
+    box-shadow:0 18px 38px rgba(34,20,0,.24);
+    backdrop-filter:blur(10px);
+    padding:8px;
+  }
   #screen-veiculos .tabs .tab-btn{
+    font-size:.68rem;
+    padding:9px 10px;
+  }
+  #screen-arraia .tabs .tab-btn{
     font-size:.68rem;
     padding:9px 10px;
   }
@@ -2147,7 +2195,7 @@ mark{background:#fff59d;border-radius:2px;}
 
 <!-- ══════ ARRAIÁ ══════ -->
 <div id="screen-arraia" class="screen">
-  <div class="tabs">
+  <div class="tabs arraia-tabs">
     <button class="tab-btn active" onclick="stab('arraia','barracas',this);carregarArraia()">🎪 Barracas</button>
     <button class="tab-btn" onclick="stab('arraia','almox',this);renderArraiaAlmoxarifado()">📦 Almoxarifado</button>
     <button class="tab-btn" onclick="stab('arraia','compras',this);renderArraiaCompras()">🛒 Compras</button>
@@ -2177,8 +2225,9 @@ mark{background:#fff59d;border-radius:2px;}
       </div>
       <div class="frow">
         <div><label class="fl">Quantidade total</label><input id="arraia-almox-qtd" class="fi" type="number" min="0" step="0.01" placeholder="0"></div>
-        <div><label class="fl">Unidade</label><input id="arraia-almox-und" class="fi" type="text" placeholder="Ex: L, kg, un"></div>
+        <div><label class="fl">Unidade</label><select id="arraia-almox-und" class="fi"><option value="un">Unidade</option><option value="kg">Quilo (kg)</option><option value="g">Grama (g)</option><option value="L">Litro (L)</option><option value="mL">Mililitro (mL)</option><option value="caixa">Caixa</option><option value="pct">Pacote</option></select></div>
       </div>
+      <div style="font-size:.74rem;color:var(--cinza);margin-top:8px">Para meia caixa ou frações, use a quantidade com decimal, por exemplo: <strong>0,5 caixa</strong>.</div>
       <button class="btn btn-ouro" onclick="registrarItemAlmoxarifadoArraia()">➕ Adicionar ao almoxarifado</button>
     </div>
     <div class="card" style="margin-bottom:12px">
@@ -15595,7 +15644,7 @@ function renderArraiaPainelBarraca(barraca){
   const st=getArraiaState();
   const almOpts=st.almoxarifado.map(item=>`<option value="${item.id}">${escapeHtml(item.nome)} · livre ${getArraiaLivreAlmox(item).toLocaleString('pt-BR')} ${escapeHtml(item.unidade)}</option>`).join('');
   box.innerHTML=`<div class="card" style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap"><div><h3>🎪 ${escapeHtml(barraca.nome)}</h3><div style="font-size:.76rem;color:var(--cinza)">Planejamento, reserva do almoxarifado, compra e entrega real da barraca.</div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><span class="pill">${resumo.total} itens</span><span class="pill ${resumo.pendentes?'pr-p':'pr-v'}">${resumo.pendentes} pendente(s)</span><span class="pill">${resumo.reservados} reservado(s)</span><span class="pill">${resumo.entregues} entregue(s)</span></div></div></div>
-    <div class="card" style="margin-bottom:12px"><h3>➕ Adicionar item à barraca</h3><div class="frow"><div><label class="fl first">Origem</label><select id="arraia-item-origem" class="fi" onchange="toggleOrigemItemArraia()"><option value="pendente">Definir depois</option><option value="doacao">Doação</option><option value="almoxarifado">Almoxarifado</option><option value="comprar">Comprar</option></select></div><div><label class="fl">Quantidade</label><input id="arraia-item-qtd" class="fi" type="number" min="0" step="0.01" placeholder="0"></div></div><div class="frow"><div id="arraia-item-manual-wrap"><label class="fl">Item</label><input id="arraia-item-nome" class="fi" type="text" placeholder="Ex: Embalagem grande"></div><div id="arraia-item-almox-wrap" style="display:none"><label class="fl">Item do almoxarifado</label><select id="arraia-item-almox" class="fi"><option value="">Selecione...</option>${almOpts}</select></div><div><label class="fl">Unidade</label><input id="arraia-item-und" class="fi" type="text" value="un"></div></div><button class="btn btn-ouro" onclick="registrarItemBarracaArraia()">Salvar item da barraca</button></div>
+    <div class="card" style="margin-bottom:12px"><h3>➕ Adicionar item à barraca</h3><div class="frow"><div><label class="fl first">Origem</label><select id="arraia-item-origem" class="fi" onchange="toggleOrigemItemArraia()"><option value="pendente">Definir depois</option><option value="doacao">Doação</option><option value="almoxarifado">Almoxarifado</option><option value="comprar">Comprar</option></select></div><div><label class="fl">Quantidade</label><input id="arraia-item-qtd" class="fi" type="number" min="0" step="0.01" placeholder="0"></div></div><div class="frow"><div id="arraia-item-manual-wrap"><label class="fl">Item</label><input id="arraia-item-nome" class="fi" type="text" placeholder="Ex: Embalagem grande"></div><div id="arraia-item-almox-wrap" style="display:none"><label class="fl">Item do almoxarifado</label><select id="arraia-item-almox" class="fi"><option value="">Selecione...</option>${almOpts}</select></div><div><label class="fl">Unidade</label><select id="arraia-item-und" class="fi"><option value="un">Unidade</option><option value="kg">Quilo (kg)</option><option value="g">Grama (g)</option><option value="L">Litro (L)</option><option value="mL">Mililitro (mL)</option><option value="caixa">Caixa</option><option value="pct">Pacote</option></select></div></div><div style="font-size:.74rem;color:var(--cinza);margin:8px 0 10px">Se precisar registrar meia caixa, use a quantidade como <strong>0,5</strong>.</div><button class="btn btn-ouro" onclick="registrarItemBarracaArraia()">Salvar item da barraca</button></div>
     <div class="card"><h3>📋 Itens da barraca</h3>${barraca.itens.length?`<div style="display:flex;flex-direction:column;gap:10px">${barraca.itens.map(item=>{const origemMap={pendente:'Pendente',doacao:'Doação',almoxarifado:'Almoxarifado',comprar:'Comprar'}; const statusMap={pendente:'Pendente',garantido:'Garantido',reservado:'Reservado',compra_pendente:'Compra pendente',comprado:'Compra resolvida',entregue:'Entregue',devolvido:'Devolvido'}; return `<div style="padding:12px;border:1px solid #efe4cf;border-radius:16px;background:#fffaf2"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;flex-wrap:wrap"><div><strong style="color:var(--marrom)">${escapeHtml(item.nome)}</strong><div style="font-size:.75rem;color:var(--cinza)">${item.quantidade.toLocaleString('pt-BR')} ${escapeHtml(item.unidade)} · ${origemMap[item.origem]||'—'}</div></div><span class="pill ${item.status==='compra_pendente'||item.status==='pendente'?'pr-p':'pr-v'}">${statusMap[item.status]||item.status}</span></div>${item.status==='reservado'?`<div style="margin-top:10px"><button type="button" class="btn-sm bsv" onclick="entregarItemBarracaArraia('${item.id}')">📤 Entregar para a barraca</button></div>`:''}${item.status==='entregue'||item.status==='devolvido'?`<div style="margin-top:10px;display:grid;gap:8px"><div class="frow">${ARRAIA_DIAS_FESTA.map(d=>`<div><label class="fl">${d.label}</label><input id="arraia-consumo-${d.id}-${item.id}" class="fi" type="number" min="0" step="0.01" value="${moneyNumber(item?.consumos?.[d.id]||0)}"></div>`).join('')}</div><div class="frow"><div><label class="fl">Sobra devolvida</label><input id="arraia-devolvido-${item.id}" class="fi" type="number" min="0" step="0.01" value="${moneyNumber(item.devolvido_qtd||0)}"></div><div style="display:flex;align-items:end;gap:8px;flex-wrap:wrap"><button type="button" class="btn-sm bsv" onclick="atualizarConsumoItemArraia('${item.id}')">💾 Salvar consumo</button>${item.status!=='devolvido'?`<button type="button" class="btn-sm bsc" onclick="devolverSobraArraia('${item.id}')">↩ Devolver ao almoxarifado</button>`:''}</div></div></div>`:''}</div>`;}).join('')}</div>`:'<div class="empty">Nenhum item cadastrado nesta barraca.</div>'}</div>`;
   toggleOrigemItemArraia();
 }
