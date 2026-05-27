@@ -1947,8 +1947,8 @@ overflow:hidden}
 .mb-r{background:var(--verm);color:#fff;}
 
 /* ── TOAST ── */
-.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(80px);background:linear-gradient(135deg,var(--ouro-esc),var(--ouro));color:#fff;padding:11px 22px;border-radius:30px;font-size:.82rem;font-weight:600;box-shadow:0 4px 20px rgba(201,151,58,.4);transition:transform .3s ease;z-index:999;white-space:nowrap;max-width:92vw;text-align:center;}
-.toast.show{transform:translateX(-50%) translateY(0);}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(120px);opacity:0;pointer-events:none;visibility:hidden;background:linear-gradient(135deg,var(--ouro-esc),var(--ouro));color:#fff;padding:11px 22px;border-radius:30px;font-size:.82rem;font-weight:600;box-shadow:0 4px 20px rgba(201,151,58,.4);transition:transform .3s ease,opacity .25s ease,visibility .25s ease;z-index:999;white-space:nowrap;max-width:92vw;text-align:center;}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1;visibility:visible;}
 mark{background:#fff59d;border-radius:2px;}
 /* ── HORTA ── */
 .horta-mapa{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-bottom:12px;}
@@ -15690,7 +15690,7 @@ function renderArraiaBarracasCards(){
   const st=getArraiaState();
   box.innerHTML=st.barracas.map(b=>{
     const r=getArraiaResumoBarraca(b);
-    return `<button type="button" class="arraia-barraca-card ${arraiaBarracaAtual===b.id?'active':''}" onclick="abrirPainelBarracaArraia('${b.id}')"><div class="arraia-barraca-top"><span class="arraia-barraca-ic">${getArraiaBarracaIcon(b.id)}</span><span class="pill ${r.pendentes?'pr-p':'pr-v'}">${r.pendentes?`${r.pendentes} pend.`:'OK'}</span></div><div class="arraia-barraca-name">${escapeHtml(b.nome)}</div><div class="arraia-barraca-meta">${r.total} item(ns) · ${r.reservados} reservados</div></button>`;
+    return `<button type="button" class="arraia-barraca-card ${arraiaBarracaAtual===b.id?'active':''}" onclick="abrirPainelBarracaArraia('${b.id}')"><div class="arraia-barraca-top"><span class="arraia-barraca-ic">${getArraiaBarracaIcon(b.id)}</span><span class="pill ${r.pendentes?'pr-p':'pr-v'}">${r.pendentes?`${r.pendentes} pend.`:'OK'}</span></div><div class="arraia-barraca-name">${escapeHtml(b.nome)}</div></button>`;
   }).join('');
 }
 function renderArraiaPainelBarraca(barraca){
