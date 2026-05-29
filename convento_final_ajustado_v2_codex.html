@@ -2263,14 +2263,16 @@ mark{background:#fff59d;border-radius:2px;}
       </div>
       <div class="frow">
         <div><label class="fl">Quantidade total</label><input id="arraia-almox-qtd" class="fi" type="number" min="0" step="0.01" placeholder="0"></div>
-        <div><label class="fl">Unidade</label><select id="arraia-almox-und" class="fi"><option value="un">Unidade</option><option value="kg">Quilo (kg)</option><option value="g">Grama (g)</option><option value="L">Litro (L)</option><option value="mL">Mililitro (mL)</option><option value="caixa">Caixa</option><option value="pct">Pacote</option></select></div>
+        <div><label class="fl">Unidade</label><select id="arraia-almox-und" class="fi" onchange="toggleCamposEmbalagemArraia()"><option value="un">Unidade</option><option value="kg">Quilo (kg)</option><option value="g">Grama (g)</option><option value="L">Litro (L)</option><option value="mL">Mililitro (mL)</option><option value="caixa">Caixa</option><option value="pct">Pacote</option></select></div>
       </div>
-      <div class="frow">
-        <div><label class="fl">Tipo de embalagem (opcional)</label><select id="arraia-almox-emb-tipo" class="fi"><option value="">Sem embalagem de referência</option><option value="pct">Pacote</option><option value="caixa">Caixa</option><option value="fardo">Fardo</option><option value="saco">Saco</option></select></div>
-        <div><label class="fl">Qtd de embalagens</label><input id="arraia-almox-emb-total" class="fi" type="number" min="0" step="0.01" placeholder="Ex: 24"></div>
-        <div><label class="fl">Qtd por embalagem</label><input id="arraia-almox-emb-qtd" class="fi" type="number" min="0" step="0.01" placeholder="Ex: 25"></div>
+      <input id="arraia-almox-emb-tipo" type="hidden" value="">
+      <div id="arraia-almox-emb-wrap" style="display:none">
+        <div class="frow">
+          <div><label id="arraia-almox-emb-total-label" class="fl">Qtd de embalagens</label><input id="arraia-almox-emb-total" class="fi" type="number" min="0" step="0.01" placeholder="Ex: 24"></div>
+          <div><label id="arraia-almox-emb-qtd-label" class="fl">Qtd por embalagem</label><input id="arraia-almox-emb-qtd" class="fi" type="number" min="0" step="0.01" placeholder="Ex: 25"></div>
+        </div>
+        <div id="arraia-almox-emb-help" style="font-size:.74rem;color:var(--cinza);margin-top:8px">Informe quantos itens vêm em cada embalagem.</div>
       </div>
-      <div style="font-size:.74rem;color:var(--cinza);margin-top:8px">Você pode informar a quantidade total diretamente ou deixar o app calcular a partir de <strong>embalagens × itens por embalagem</strong>. Ex.: 24 pacotes de 25 copos = 600 unidades.</div>
       <button class="btn btn-ouro" onclick="registrarItemAlmoxarifadoArraia()">➕ Adicionar ao almoxarifado</button>
     </div>
     <div class="card" style="margin-bottom:12px">
@@ -15578,6 +15580,27 @@ function toggleOrigemItemArraia(){
   if(manual)manual.style.display=origem==='almoxarifado'?'none':'';
   if(almox)almox.style.display=origem==='almoxarifado'?'':'none';
 }
+function toggleCamposEmbalagemArraia(){
+  const und=document.getElementById('arraia-almox-und')?.value||'un';
+  const wrap=document.getElementById('arraia-almox-emb-wrap');
+  const tipo=document.getElementById('arraia-almox-emb-tipo');
+  const totalLabel=document.getElementById('arraia-almox-emb-total-label');
+  const qtdLabel=document.getElementById('arraia-almox-emb-qtd-label');
+  const help=document.getElementById('arraia-almox-emb-help');
+  const isEmb=und==='pct' || und==='caixa';
+  if(wrap)wrap.style.display=isEmb?'':'none';
+  if(tipo)tipo.value=isEmb?und:'';
+  if(!isEmb){
+    const embTotal=document.getElementById('arraia-almox-emb-total'); if(embTotal)embTotal.value='';
+    const embQtd=document.getElementById('arraia-almox-emb-qtd'); if(embQtd)embQtd.value='';
+    return;
+  }
+  const nomeEmb=und==='pct'?'pacotes':'caixas';
+  const nomeEmbSing=und==='pct'?'pacote':'caixa';
+  if(totalLabel)totalLabel.textContent=`Qtd de ${nomeEmb}`;
+  if(qtdLabel)qtdLabel.textContent=`Qtd por ${nomeEmbSing}`;
+  if(help)help.innerHTML=`Ex.: 24 ${nomeEmb} com 25 unidades cada = 600 unidades no total.`;
+}
 function registrarItemBarracaArraia(){
   if(!arraiaBarracaAtual){showToast('Selecione a barraca primeiro.');return;}
   const origem=document.getElementById('arraia-item-origem')?.value||'pendente';
@@ -15722,6 +15745,7 @@ function registrarItemAlmoxarifadoArraia(){
   const und=document.getElementById('arraia-almox-und'); if(und)und.value='un';
   const cat=document.getElementById('arraia-almox-cat'); if(cat)cat.value='Alimentos';
   const embTipoEl=document.getElementById('arraia-almox-emb-tipo'); if(embTipoEl)embTipoEl.value='';
+  toggleCamposEmbalagemArraia();
   renderArraiaAlmoxarifado();
   showToast('Item adicionado ao almoxarifado.');
 }
@@ -15828,6 +15852,7 @@ function renderArraiaResumo(){
 function carregarArraia(){
   popularSelectArraiaBarracas();
   popularSelectArraiaItensAlmox();
+  toggleCamposEmbalagemArraia();
   renderArraiaBarracas();
   renderArraiaAlmoxarifado();
   renderArraiaCompras();
