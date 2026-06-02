@@ -3456,6 +3456,8 @@ let mkFilter = 'todos', mkChecked = {};
 let consumoState = {}, reposicoes = [];
 let vehEmUso = {}, todosViagens = [];
 const STORAGE_ARRAIA = 'convento_arraia_v1';
+const CHAVE_ARRAIA_COMPARTILHADO = 'arraia_estado_compartilhado';
+let syncArraiaRemotaBloqueada = false;
 const ARRAIA_BARRACAS_PADRAO = [
   {id:'pastel',nome:'Pastel'},
   {id:'churrasco',nome:'Churrasco'},
@@ -15441,6 +15443,7 @@ function normalizarEstadoArraia(raw){
     };
   });
   return {
+    _updated_at:String(base._updated_at||base.updated_at||'').trim(),
     barracas,
     almoxarifado:Array.isArray(base.almoxarifado)?base.almoxarifado.map(item=>({
       id:item.id||arraiaUid('alm'),
@@ -15468,12 +15471,43 @@ function normalizarEstadoArraia(raw){
     })).filter(item=>item.nome):[]
   };
 }
-function getArraiaState(){
+function getArraiaStateLocal(){
   try{return normalizarEstadoArraia(JSON.parse(localStorage.getItem(STORAGE_ARRAIA)||'{}'));}
   catch{return normalizarEstadoArraia({});}
 }
-function setArraiaState(st){
+function salvarArraiaLocal(st){
   localStorage.setItem(STORAGE_ARRAIA, JSON.stringify(normalizarEstadoArraia(st)));
+}
+async function sincronizarArraiaCompartilhado(forceLocal=false){
+  const local=getArraiaStateLocal();
+  if(syncArraiaRemotaBloqueada)return local;
+  try{
+    const {data:cfg}=await sb.from('configuracoes').select('valor').eq('chave',CHAVE_ARRAIA_COMPARTILHADO).maybeSingle();
+    const remoto=cfg?.valor ? normalizarEstadoArraia(JSON.parse(cfg.valor)) : normalizarEstadoArraia({});
+    const tsLocal=Date.parse(local._updated_at||'')||0;
+    const tsRemoto=Date.parse(remoto._updated_at||'')||0;
+    const usarLocal=forceLocal || !cfg?.valor || tsLocal>=tsRemoto;
+    const escolhido=usarLocal ? local : remoto;
+    salvarArraiaLocal(escolhido);
+    if(usarLocal){
+      await sb.from('configuracoes').upsert({chave:CHAVE_ARRAIA_COMPARTILHADO, valor:JSON.stringify(escolhido)});
+    }
+    return escolhido;
+  }catch(e){
+    if(String(e?.message||e||'').includes('401') || String(e?.code||'')==='401' || /unauthorized/i.test(String(e?.message||e||''))){
+      syncArraiaRemotaBloqueada = true;
+    }
+    return local;
+  }
+}
+function getArraiaState(){
+  return getArraiaStateLocal();
+}
+function setArraiaState(st){
+  const payload=normalizarEstadoArraia(st);
+  payload._updated_at=new Date().toISOString();
+  salvarArraiaLocal(payload);
+  sincronizarArraiaCompartilhado(true).catch(()=>{});
 }
 function getArraiaBarracaById(id=''){
   return getArraiaState().barracas.find(b=>b.id===id)||null;
@@ -15849,7 +15883,8 @@ function renderArraiaResumo(){
   const barracas=getArraiaState().barracas;
   box.innerHTML=`<div class="card" style="margin-bottom:12px"><h3>📊 Resumo do Arraiá</h3><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px"><div class="card" style="margin:0;padding:12px;background:var(--ouro-pale)"><strong>Itens planejados</strong><div style="font-size:1.4rem;font-weight:800;color:var(--marrom)">${totais.totalItens}</div></div><div class="card" style="margin:0;padding:12px;background:var(--ouro-pale)"><strong>Reservados</strong><div style="font-size:1.4rem;font-weight:800;color:var(--marrom)">${totais.reservados}</div></div><div class="card" style="margin:0;padding:12px;background:var(--ouro-pale)"><strong>Entregues</strong><div style="font-size:1.4rem;font-weight:800;color:var(--marrom)">${totais.entregues}</div></div><div class="card" style="margin:0;padding:12px;background:var(--ouro-pale)"><strong>Compras pendentes</strong><div style="font-size:1.4rem;font-weight:800;color:var(--marrom)">${totais.comprasPend}</div></div></div></div><div class="card" style="margin-bottom:12px"><h3>🗓️ Consumo por dia da festa</h3><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px"><div class="card" style="margin:0;padding:12px;background:#fffaf2"><strong>Sexta</strong><div style="font-size:1.25rem;font-weight:800;color:var(--marrom)">${sexta.toLocaleString('pt-BR')}</div></div><div class="card" style="margin:0;padding:12px;background:#fffaf2"><strong>Sábado</strong><div style="font-size:1.25rem;font-weight:800;color:var(--marrom)">${sabado.toLocaleString('pt-BR')}</div></div><div class="card" style="margin:0;padding:12px;background:#fffaf2"><strong>Domingo</strong><div style="font-size:1.25rem;font-weight:800;color:var(--marrom)">${domingo.toLocaleString('pt-BR')}</div></div></div></div><div class="card"><h3>🎪 Situação das barracas</h3><div style="display:flex;flex-direction:column;gap:8px">${barracas.map(b=>{const r=getArraiaResumoBarraca(b); return `<div style="padding:10px 12px;border:1px solid #efe4cf;border-radius:14px;background:#fffaf2;display:flex;justify-content:space-between;gap:10px;align-items:center"><div><strong style="color:var(--marrom)">${escapeHtml(b.nome)}</strong><div style="font-size:.75rem;color:var(--cinza)">${r.total} itens · ${r.pendentes} pendentes · ${r.entregues} entregues</div></div><button type="button" class="btn-sm bsc" onclick="stab('arraia','barracas',document.querySelector('#screen-arraia .tab-btn'));abrirPainelBarracaArraia('${b.id}')">Abrir barraca</button></div>`;}).join('')}</div></div>`;
 }
-function carregarArraia(){
+async function carregarArraia(){
+  await sincronizarArraiaCompartilhado(false);
   popularSelectArraiaBarracas();
   popularSelectArraiaItensAlmox();
   toggleCamposEmbalagemArraia();
