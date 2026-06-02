@@ -15507,15 +15507,34 @@ async function sincronizarArraiaCompartilhado(forceLocal=false){
   try{
     const {data:cfg}=await sb.from('configuracoes').select('valor').eq('chave',CHAVE_ARRAIA_COMPARTILHADO).maybeSingle();
     const remoto=cfg?.valor ? normalizarEstadoArraia(JSON.parse(cfg.valor)) : normalizarEstadoArraia({});
-    const tsLocal=Date.parse(local._updated_at||'')||0;
-    const tsRemoto=Date.parse(remoto._updated_at||'')||0;
-    const usarLocal=forceLocal || !cfg?.valor || tsLocal>=tsRemoto;
-    const escolhido=usarLocal ? local : remoto;
-    salvarArraiaLocal(escolhido);
-    if(usarLocal){
+    let escolhido=remoto;
+    if(forceLocal){
+      escolhido=local;
       await sb.from('configuracoes').upsert({chave:CHAVE_ARRAIA_COMPARTILHADO, valor:JSON.stringify(escolhido)});
+      salvarArraiaLocal(escolhido);
+      arraiaSyncInfo={modo:'sincronizado',atualizadoEm:escolhido._updated_at?fmtArraiaDataHora(escolhido._updated_at):'',detalhe:'Alterações sincronizadas com a base.'};
+      renderArraiaSyncStatus();
+      return escolhido;
     }
-    arraiaSyncInfo={modo:'sincronizado',atualizadoEm:escolhido._updated_at?fmtArraiaDataHora(escolhido._updated_at):'',detalhe:usarLocal?'Alterações sincronizadas com a base.':'Dados atualizados a partir da base compartilhada.'};
+    const remotoTemConteudo=(remoto.barracas||[]).some(b=>(b.itens||[]).length)|| (remoto.almoxarifado||[]).length || (remoto.compras||[]).length;
+    const localTemConteudo=(local.barracas||[]).some(b=>(b.itens||[]).length)|| (local.almoxarifado||[]).length || (local.compras||[]).length;
+    if(remotoTemConteudo){
+      escolhido=remoto;
+      salvarArraiaLocal(escolhido);
+      arraiaSyncInfo={modo:'sincronizado',atualizadoEm:escolhido._updated_at?fmtArraiaDataHora(escolhido._updated_at):'',detalhe:'Dados atualizados a partir da base compartilhada.'};
+      renderArraiaSyncStatus();
+      return escolhido;
+    }
+    if(localTemConteudo){
+      escolhido=local;
+      await sb.from('configuracoes').upsert({chave:CHAVE_ARRAIA_COMPARTILHADO, valor:JSON.stringify(escolhido)});
+      salvarArraiaLocal(escolhido);
+      arraiaSyncInfo={modo:'sincronizado',atualizadoEm:escolhido._updated_at?fmtArraiaDataHora(escolhido._updated_at):'',detalhe:'Dados locais enviados para a base compartilhada.'};
+      renderArraiaSyncStatus();
+      return escolhido;
+    }
+    salvarArraiaLocal(escolhido);
+    arraiaSyncInfo={modo:'sincronizado',atualizadoEm:escolhido._updated_at?fmtArraiaDataHora(escolhido._updated_at):'',detalhe:'Base compartilhada pronta para receber os lançamentos.'};
     renderArraiaSyncStatus();
     return escolhido;
   }catch(e){
