@@ -2236,7 +2236,7 @@ mark{background:#fff59d;border-radius:2px;}
   <div class="tabs arraia-tabs">
     <button class="tab-btn active" onclick="stab('arraia','barracas',this);carregarArraia()">🎪 Barracas</button>
     <button class="tab-btn" onclick="stab('arraia','almox',this);renderArraiaAlmoxarifado()">📦 Almoxarifado</button>
-    <button class="tab-btn" onclick="stab('arraia','resumo',this);renderArraiaResumo()">📊 Resumo</button>
+    <button class="tab-btn" onclick="stab('arraia','resumo',this);renderArraiaResumo()">📅 Histórico</button>
   </div>
   <div id="arraia-sync-status" style="margin:10px 0 2px;padding:10px 12px;border:1px solid #efe4cf;border-radius:14px;background:#fffaf2;font-size:.78rem;color:var(--cinza)">Atualizado em: —</div>
   <div id="sub-arraia-barracas" class="screen active" style="padding:12px 0 0">
@@ -16079,6 +16079,11 @@ function getArraiaMovimentosPorDia(item={}){
 function getArraiaTotalSaido(item={}){
   return (item.historico_saidas||[]).reduce((acc,mov)=>acc+(mov.tipo==='devolucao'?-moneyNumber(mov.quantidade):moneyNumber(mov.quantidade)),0);
 }
+function getArraiaTotalMovDia(item={},dia='sexta'){
+  return (item.historico_saidas||[])
+    .filter(mov=>mov.dia_festa===dia)
+    .reduce((acc,mov)=>acc+(mov.tipo==='devolucao'?-moneyNumber(mov.quantidade):moneyNumber(mov.quantidade)),0);
+}
 function setArraiaState(st){
   const payload=normalizarEstadoArraia(st);
   payload._updated_at=new Date().toISOString();
@@ -16189,6 +16194,37 @@ function cancelarMovimentoAlmoxArraia(itemId=''){
   const panel=document.getElementById(`arraia-mov-${itemId}`);
   if(panel)panel.innerHTML='';
 }
+function abrirEdicaoEstoqueAlmoxArraia(itemId=''){
+  const panel=document.getElementById(`arraia-mov-${itemId}`);
+  if(!panel)return;
+  const st=getArraiaState();
+  const item=st.almoxarifado.find(i=>i.id===itemId); if(!item)return;
+  panel.innerHTML=`<div style="margin-top:12px;padding:12px;border:1px dashed #e5d2aa;border-radius:16px;background:#fffaf2">
+    <h4 style="margin:0 0 8px;color:var(--marrom)">✏️ Ajustar quantidade do estoque</h4>
+    <div style="font-size:.76rem;color:var(--cinza);margin-bottom:10px">Use quando o número foi digitado errado. O histórico de saídas e devoluções continua preservado.</div>
+    <div class="frow">
+      <div><label class="fl first">Quantidade inicial</label><input id="arraia-edit-inicial-${itemId}" class="fi" type="number" min="0" step="0.01" value="${moneyNumber(item.quantidade_inicial||0)}"></div>
+      <div><label class="fl">Saldo atual</label><input id="arraia-edit-atual-${itemId}" class="fi" type="number" min="0" step="0.01" value="${moneyNumber(item.quantidade_atual||0)}"></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+      <button type="button" class="btn-sm bsv" onclick="salvarEdicaoEstoqueAlmoxArraia('${itemId}')">💾 Salvar ajuste</button>
+      <button type="button" class="btn-sm bsr" onclick="cancelarMovimentoAlmoxArraia('${itemId}')">Cancelar</button>
+    </div>
+  </div>`;
+}
+function salvarEdicaoEstoqueAlmoxArraia(itemId=''){
+  const st=getArraiaState();
+  const item=st.almoxarifado.find(i=>i.id===itemId); if(!item)return;
+  const inicial=moneyNumber(document.getElementById(`arraia-edit-inicial-${itemId}`)?.value||0);
+  const atual=moneyNumber(document.getElementById(`arraia-edit-atual-${itemId}`)?.value||0);
+  if(inicial<0||atual<0){showToast('As quantidades não podem ser negativas.');return;}
+  item.quantidade_inicial=inicial;
+  item.quantidade_atual=atual;
+  setArraiaState(st);
+  renderArraiaAlmoxarifado();
+  renderArraiaResumo();
+  showToast('Quantidade ajustada.');
+}
 function confirmarMovimentoAlmoxArraia(itemId='',tipo='entrega'){
   const st=getArraiaState();
   const item=st.almoxarifado.find(i=>i.id===itemId); if(!item)return;
@@ -16260,23 +16296,26 @@ function renderArraiaAlmoxarifado(){
   if(!st.almoxarifado.length){box.innerHTML='<div class="empty">Nenhum item cadastrado no almoxarifado.</div>';return;}
   box.innerHTML=st.almoxarifado.map(item=>{
     const atual=moneyNumber(item.quantidade_atual||0);
-    const inicial=moneyNumber(item.quantidade_inicial||0);
-    const totalSaido=getArraiaTotalSaido(item);
     const vinc=item.barracas_vinculadas==='todas'?'Todas as barracas':(item.barracas_vinculadas||[]).map(id=>getArraiaBarracaById(id)?.nome).filter(Boolean).join(', ');
     const embTxt=formatArraiaQtdEmb(item,atual);
+    const diasCards=ARRAIA_DIAS_FESTA.map(d=>{
+      const totalDia=getArraiaTotalMovDia(item,d.id);
+      const cor=totalDia<0?'#b42318':'var(--marrom)';
+      return `<div style="padding:10px;border:1px solid #efe4cf;border-radius:14px;background:#fffaf2"><div style="font-size:.68rem;letter-spacing:.08em;font-weight:800;color:var(--cinza)">${escapeHtml(d.label).toUpperCase()}</div><strong style="color:${cor}">${formatArraiaQtd(Math.abs(totalDia),item.unidade)}</strong></div>`;
+    }).join('');
     return `<div class="card" style="margin-bottom:12px">
       <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap">
         <div><h3>📦 ${escapeHtml(item.nome)}</h3><div style="font-size:.76rem;color:var(--cinza)">${escapeHtml(item.categoria)} · ${escapeHtml(getArraiaLabelUnidadeCurta(item.unidade))} · ${escapeHtml(vinc)}</div></div>
         <span class="pill">${escapeHtml(item.categoria)} · ${escapeHtml(getArraiaLabelUnidadeCurta(item.unidade))}</span>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:14px 0">
         <div style="padding:12px;border:1px solid #efe4cf;border-radius:16px;background:var(--ouro-pale)"><div style="font-size:.68rem;letter-spacing:.08em;font-weight:800;color:var(--cinza)">SALDO ATUAL</div><div style="font-size:1.75rem;font-weight:900;color:var(--ouro)">${formatArraiaQtd(atual,item.unidade)}</div>${embTxt?`<div style="font-size:.72rem;color:var(--cinza)">${escapeHtml(embTxt)}</div>`:''}</div>
-        <div style="padding:12px;border:1px solid #efe4cf;border-radius:16px;background:#fffaf2"><div style="font-size:.68rem;letter-spacing:.08em;font-weight:800;color:var(--cinza)">INICIAL</div><strong>${formatArraiaQtd(inicial,item.unidade)}</strong></div>
-        <div style="padding:12px;border:1px solid #efe4cf;border-radius:16px;background:#fffaf2"><div style="font-size:.68rem;letter-spacing:.08em;font-weight:800;color:var(--cinza)">TOTAL SAÍDO</div><strong>${formatArraiaQtd(totalSaido,item.unidade)}</strong></div>
+        ${diasCards}
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button type="button" class="btn-sm bsv" onclick="abrirMovimentoAlmoxArraia('${item.id}','entrega')">📤 Registrar saída</button>
         <button type="button" class="btn-sm bsc" onclick="abrirMovimentoAlmoxArraia('${item.id}','devolucao')">↩ Devolução</button>
+        <button type="button" class="btn-sm bsc" onclick="abrirEdicaoEstoqueAlmoxArraia('${item.id}')">✏️ Ajustar estoque</button>
         <button type="button" class="btn-sm bsr" onclick="excluirItemAlmoxArraia('${item.id}')">🗑️</button>
       </div>
       <div id="arraia-mov-${item.id}"></div>
@@ -16312,17 +16351,41 @@ function renderArraiaBarracas(){
   renderArraiaBarracasCards();
   renderArraiaPainelBarraca(getArraiaBarracaById(arraiaBarracaAtual));
 }
+function renderHistoricoGeralArraia(st=getArraiaState()){
+  const grupos={sexta:[],sabado:[],domingo:[],fora:[]};
+  (st.almoxarifado||[]).forEach(item=>{
+    (item.historico_saidas||[]).forEach(mov=>{
+      const dia=mov.dia_festa||'fora';
+      const barraca=getArraiaBarracaById(mov.barraca_id);
+      grupos[dia]=grupos[dia]||[];
+      grupos[dia].push({...mov,item_nome:item.nome,item_unidade:item.unidade,barraca_nome:barraca?.nome||'Barraca'});
+    });
+  });
+  const ordem=['sexta','sabado','domingo','fora'];
+  const blocos=ordem.filter(dia=>grupos[dia]?.length).map(dia=>{
+    const linhas=grupos[dia].sort((a,b)=>String(a.timestamp).localeCompare(String(b.timestamp))).map(mov=>{
+      const devolucao=mov.tipo==='devolucao';
+      return `<div style="padding:8px 0;border-top:1px solid #f0dfc2;color:${devolucao?'#b42318':'var(--cinza)'};font-size:.82rem">
+        ${devolucao?'↩ ':''}<strong>${escapeHtml(mov.hora||'--:--')}</strong> · ${escapeHtml(mov.item_nome)} → ${escapeHtml(mov.barraca_nome)} · ${formatArraiaQtd(mov.quantidade,mov.item_unidade)}
+      </div>`;
+    }).join('');
+    return `<details open style="padding:12px;border:1px solid #efe4cf;border-radius:16px;background:#fffaf2">
+      <summary style="cursor:pointer;font-weight:900;color:var(--marrom)">${escapeHtml(getArraiaDiaLabel(dia))}</summary>
+      ${linhas}
+    </details>`;
+  }).join('');
+  return blocos||'<div class="empty">Nenhuma movimentação registrada ainda.</div>';
+}
 function renderArraiaResumo(){
   const box=document.getElementById('arraia-resumo-wrap'); if(!box)return;
   const st=getArraiaState();
-  const totalProdutos=st.almoxarifado.length;
-  const totalInicial=st.almoxarifado.reduce((acc,item)=>acc+moneyNumber(item.quantidade_inicial||0),0);
-  const totalAtual=st.almoxarifado.reduce((acc,item)=>acc+moneyNumber(item.quantidade_atual||0),0);
-  const totalSaido=st.almoxarifado.reduce((acc,item)=>acc+getArraiaTotalSaido(item),0);
-  const itensComMov=st.almoxarifado.filter(item=>(item.historico_saidas||[]).length);
+  const totaisDia=ARRAIA_DIAS_FESTA.map(d=>({
+    ...d,
+    total:(st.almoxarifado||[]).reduce((acc,item)=>acc+getArraiaTotalMovDia(item,d.id),0)
+  }));
   box.innerHTML=`<div class="card" style="margin-bottom:12px"><h3>🗓️ Configuração da festa</h3><label class="fl first">Data de início da festa (sexta-feira)</label><div class="frow"><div><input id="arraia-festa-inicio" class="fi" type="date" value="${escapeHtml(st.festa_inicio_iso||'')}"></div><div style="display:flex;align-items:end"><button type="button" class="btn btn-ouro" onclick="setArraiaFestaDatas(document.getElementById('arraia-festa-inicio')?.value||'')">Salvar data</button></div></div></div>
-    <div class="card" style="margin-bottom:12px"><h3>📊 Resumo geral</h3><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px"><div class="card" style="margin:0;padding:12px;background:var(--ouro-pale)"><strong>Produtos no almoxarifado</strong><div style="font-size:1.45rem;font-weight:900;color:var(--marrom)">${totalProdutos}</div></div><div class="card" style="margin:0;padding:12px;background:#fffaf2"><strong>Estoque inicial</strong><div style="font-size:1.25rem;font-weight:800;color:var(--marrom)">${totalInicial.toLocaleString('pt-BR')}</div></div><div class="card" style="margin:0;padding:12px;background:#fffaf2"><strong>Saldo atual</strong><div style="font-size:1.25rem;font-weight:800;color:var(--ouro)">${totalAtual.toLocaleString('pt-BR')}</div></div><div class="card" style="margin:0;padding:12px;background:#fffaf2"><strong>Total entregue líquido</strong><div style="font-size:1.25rem;font-weight:800;color:var(--marrom)">${totalSaido.toLocaleString('pt-BR')}</div></div></div></div>
-    <div class="card"><h3>📦 Consumo por produto e dia</h3>${itensComMov.length?`<div style="display:flex;flex-direction:column;gap:12px">${itensComMov.map(item=>`<div style="padding:12px;border:1px solid #efe4cf;border-radius:16px;background:#fffaf2"><h3 style="margin-bottom:4px">${escapeHtml(item.nome)} — ${formatArraiaQtd(item.quantidade_inicial,item.unidade)} inicial · ${formatArraiaQtd(item.quantidade_atual,item.unidade)} saldo atual</h3>${renderHistoricoMovimentosArraia(item)}</div>`).join('')}</div>`:'<div class="empty">Nenhuma movimentação registrada ainda.</div>'}</div>`;
+    <div class="card" style="margin-bottom:12px"><h3>📊 Total consumido por dia</h3><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px">${totaisDia.map(d=>`<div style="padding:12px;border:1px solid #efe4cf;border-radius:16px;background:var(--ouro-pale)"><strong>${escapeHtml(d.label)}</strong><div style="font-size:1.35rem;font-weight:900;color:var(--marrom)">${Math.abs(d.total).toLocaleString('pt-BR')}</div></div>`).join('')}</div></div>
+    <div class="card"><h3>📅 Histórico dia a dia</h3>${renderHistoricoGeralArraia(st)}</div>`;
 }
 async function carregarArraia(){
   await sincronizarArraiaCompartilhado(false);
