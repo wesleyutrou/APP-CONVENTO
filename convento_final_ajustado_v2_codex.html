@@ -15938,6 +15938,7 @@ function normalizarEstadoArraia(raw){
   const almoxBase=Array.isArray(base.almoxarifado)?base.almoxarifado:[];
   const barracaIdsValidos=ARRAIA_BARRACAS_PADRAO.map(b=>b.id);
   const normalizarHistoricoEntrega=(h={})=>({
+    movimento_id:String(h.movimento_id||'').trim(),
     quantidade:moneyNumber(h.quantidade||0),
     dia_festa:['sexta','sabado','domingo'].includes(h.dia_festa)?h.dia_festa:null,
     hora:String(h.hora||'').trim(),
@@ -16036,6 +16037,11 @@ function setArraiaFestaDatas(dateString=''){
 }
 function getArraiaDiaLabel(id=''){
   return (ARRAIA_DIAS_FESTA.find(d=>d.id===id)||{}).label || 'Fora da festa';
+}
+function getArraiaDiaOptions(selected=null){
+  const atual=selected===undefined?getDiaFestaHoje():selected;
+  return `<option value="" ${!atual?'selected':''}>Fora da festa / preparação</option>`+
+    ARRAIA_DIAS_FESTA.map(d=>`<option value="${d.id}" ${atual===d.id?'selected':''}>${escapeHtml(d.label)}</option>`).join('');
 }
 function getArraiaBarracaById(id=''){
   return getArraiaState().barracas.find(b=>b.id===id)||null;
@@ -16188,7 +16194,7 @@ function abrirMovimentoAlmoxArraia(itemId='',tipo='entrega'){
   const st=getArraiaState();
   const item=st.almoxarifado.find(i=>i.id===itemId); if(!item)return;
   const barracas=getArraiaBarracasPermitidas(item);
-  panel.innerHTML=`<div style="margin-top:12px;padding:12px;border:1px dashed #e5d2aa;border-radius:16px;background:#fffaf2"><h4 style="margin:0 0 8px;color:var(--marrom)">${tipo==='devolucao'?'↩ Registrar devolução':'📤 Registrar saída'}</h4><div class="frow"><div><label class="fl first">Barraca</label><select id="arraia-mov-barraca-${itemId}" class="fi"><option value="">Selecione...</option>${barracas.map(b=>`<option value="${b.id}">${escapeHtml(b.nome)}</option>`).join('')}</select></div><div><label class="fl">Quantidade</label><input id="arraia-mov-qtd-${itemId}" class="fi" type="number" min="0" step="0.01" placeholder="0"></div></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button type="button" class="btn-sm ${tipo==='devolucao'?'bsc':'bsv'}" onclick="confirmarMovimentoAlmoxArraia('${itemId}','${tipo}')">${tipo==='devolucao'?'Confirmar devolução':'Confirmar saída'}</button><button type="button" class="btn-sm bsr" onclick="cancelarMovimentoAlmoxArraia('${itemId}')">Cancelar</button></div></div>`;
+  panel.innerHTML=`<div style="margin-top:12px;padding:12px;border:1px dashed #e5d2aa;border-radius:16px;background:#fffaf2"><h4 style="margin:0 0 8px;color:var(--marrom)">${tipo==='devolucao'?'↩ Registrar devolução':'📤 Registrar saída'}</h4><div class="frow"><div><label class="fl first">Barraca</label><select id="arraia-mov-barraca-${itemId}" class="fi"><option value="">Selecione...</option>${barracas.map(b=>`<option value="${b.id}">${escapeHtml(b.nome)}</option>`).join('')}</select></div><div><label class="fl">Quantidade</label><input id="arraia-mov-qtd-${itemId}" class="fi" type="number" min="0" step="0.01" placeholder="0"></div></div><div><label class="fl">Dia da festa</label><select id="arraia-mov-dia-${itemId}" class="fi">${getArraiaDiaOptions(getDiaFestaHoje())}</select></div><div style="font-size:.74rem;color:var(--cinza);margin-top:8px">Se for teste ou preparação, deixe como <strong>Fora da festa</strong>. Se já vale para a festa, selecione Sexta, Sábado ou Domingo.</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button type="button" class="btn-sm ${tipo==='devolucao'?'bsc':'bsv'}" onclick="confirmarMovimentoAlmoxArraia('${itemId}','${tipo}')">${tipo==='devolucao'?'Confirmar devolução':'Confirmar saída'}</button><button type="button" class="btn-sm bsr" onclick="cancelarMovimentoAlmoxArraia('${itemId}')">Cancelar</button></div></div>`;
 }
 function cancelarMovimentoAlmoxArraia(itemId=''){
   const panel=document.getElementById(`arraia-mov-${itemId}`);
@@ -16235,7 +16241,8 @@ function confirmarMovimentoAlmoxArraia(itemId='',tipo='entrega'){
   const now=new Date();
   const dataIso=now.toISOString().slice(0,10);
   const hora=now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-  const dia=getDiaFestaHoje();
+  const diaSelecionado=document.getElementById(`arraia-mov-dia-${itemId}`)?.value||'';
+  const dia=['sexta','sabado','domingo'].includes(diaSelecionado)?diaSelecionado:null;
   const mov={id:arraiaUid('sai'),tipo:tipo==='devolucao'?'devolucao':'entrega',barraca_id:barraca.id,quantidade:qtd,data_iso:dataIso,dia_festa:dia,hora,timestamp:now.toISOString()};
   let itemBarraca=(barraca.itens||[]).find(i=>i.almoxarifado_id===item.id);
   if(mov.tipo==='devolucao'&&!itemBarraca){
@@ -16251,17 +16258,51 @@ function confirmarMovimentoAlmoxArraia(itemId='',tipo='entrega'){
   if(mov.tipo==='devolucao'){
     item.quantidade_atual=moneyNumber(item.quantidade_atual||0)+qtd;
     itemBarraca.quantidade_total_entregue=Math.max(0,moneyNumber(itemBarraca.quantidade_total_entregue||0)-qtd);
-    itemBarraca.historico_entregas.push({quantidade:-qtd,dia_festa:dia,hora,timestamp:now.toISOString()});
+    itemBarraca.historico_entregas.push({movimento_id:mov.id,quantidade:-qtd,dia_festa:dia,hora,timestamp:now.toISOString()});
   }else{
     item.quantidade_atual=Math.max(0,moneyNumber(item.quantidade_atual||0)-qtd);
     itemBarraca.quantidade_total_entregue=moneyNumber(itemBarraca.quantidade_total_entregue||0)+qtd;
-    itemBarraca.historico_entregas.push({quantidade:qtd,dia_festa:dia,hora,timestamp:now.toISOString()});
+    itemBarraca.historico_entregas.push({movimento_id:mov.id,quantidade:qtd,dia_festa:dia,hora,timestamp:now.toISOString()});
   }
   setArraiaState(st);
   renderArraiaAlmoxarifado();
   renderArraiaBarracas();
   renderArraiaResumo();
   showToast(mov.tipo==='devolucao'?'Devolução registrada.':'Saída registrada.');
+}
+function excluirMovimentoAlmoxArraia(itemId='',movId=''){
+  const st=getArraiaState();
+  const item=st.almoxarifado.find(i=>i.id===itemId); if(!item)return;
+  const mov=(item.historico_saidas||[]).find(m=>m.id===movId); if(!mov)return;
+  const barraca=st.barracas.find(b=>b.id===mov.barraca_id);
+  if(!confirm(`Excluir este histórico de ${mov.tipo==='devolucao'?'devolução':'saída'} de ${formatArraiaQtd(mov.quantidade,item.unidade)}?`))return;
+  if(mov.tipo==='devolucao'){
+    item.quantidade_atual=Math.max(0,moneyNumber(item.quantidade_atual||0)-moneyNumber(mov.quantidade||0));
+  }else{
+    item.quantidade_atual=moneyNumber(item.quantidade_atual||0)+moneyNumber(mov.quantidade||0);
+  }
+  if(barraca){
+    const itemBarraca=(barraca.itens||[]).find(i=>i.almoxarifado_id===item.id);
+    if(itemBarraca){
+      if(mov.tipo==='devolucao'){
+        itemBarraca.quantidade_total_entregue=moneyNumber(itemBarraca.quantidade_total_entregue||0)+moneyNumber(mov.quantidade||0);
+      }else{
+        itemBarraca.quantidade_total_entregue=Math.max(0,moneyNumber(itemBarraca.quantidade_total_entregue||0)-moneyNumber(mov.quantidade||0));
+      }
+      itemBarraca.historico_entregas=(itemBarraca.historico_entregas||[]).filter(h=>{
+        if(h.movimento_id)return h.movimento_id!==mov.id;
+        const qtdEsperada=mov.tipo==='devolucao'?-moneyNumber(mov.quantidade):moneyNumber(mov.quantidade);
+        return !(String(h.timestamp||'')===String(mov.timestamp||'') && moneyNumber(h.quantidade)===qtdEsperada);
+      });
+    }
+    barraca.itens=(barraca.itens||[]).filter(i=>moneyNumber(i.quantidade_total_entregue||0)>0 || (i.historico_entregas||[]).length);
+  }
+  item.historico_saidas=(item.historico_saidas||[]).filter(m=>m.id!==movId);
+  setArraiaState(st);
+  renderArraiaAlmoxarifado();
+  renderArraiaBarracas();
+  renderArraiaResumo();
+  showToast('Histórico excluído e saldo revertido.');
 }
 function excluirItemAlmoxArraia(itemId=''){
   const st=getArraiaState();
@@ -16281,7 +16322,7 @@ function renderHistoricoMovimentosArraia(item={}){
     const linhas=grupos[dia].map(m=>{
       const barraca=getArraiaBarracaById(m.barraca_id);
       const devolucao=m.tipo==='devolucao';
-      return `<div style="font-size:.8rem;color:${devolucao?'#b42318':'var(--cinza)'};padding:3px 0">${devolucao?'↩ ':''}${escapeHtml(m.hora||'--:--')} → ${escapeHtml(barraca?.nome||'Barraca')} · ${formatArraiaQtd(m.quantidade,item.unidade)}</div>`;
+      return `<div style="font-size:.8rem;color:${devolucao?'#b42318':'var(--cinza)'};padding:5px 0;display:flex;justify-content:space-between;gap:8px;align-items:center"><span>${devolucao?'↩ ':''}${escapeHtml(m.hora||'--:--')} → ${escapeHtml(barraca?.nome||'Barraca')} · ${formatArraiaQtd(m.quantidade,item.unidade)}</span><button type="button" class="btn-sm bsr" style="padding:5px 9px;font-size:.72rem" onclick="excluirMovimentoAlmoxArraia('${item.id}','${m.id}')">🗑️</button></div>`;
     }).join('');
     const verbo=total<0?'voltaram':'saíram';
     return `<div style="padding:8px 0;border-top:1px solid #f0dfc2"><strong style="color:var(--marrom)">${escapeHtml(getArraiaDiaLabel(dia))} — ${formatArraiaQtd(Math.abs(total),item.unidade)} ${verbo}</strong>${linhas}</div>`;
@@ -16358,15 +16399,16 @@ function renderHistoricoGeralArraia(st=getArraiaState()){
       const dia=mov.dia_festa||'fora';
       const barraca=getArraiaBarracaById(mov.barraca_id);
       grupos[dia]=grupos[dia]||[];
-      grupos[dia].push({...mov,item_nome:item.nome,item_unidade:item.unidade,barraca_nome:barraca?.nome||'Barraca'});
+      grupos[dia].push({...mov,item_id:item.id,item_nome:item.nome,item_unidade:item.unidade,barraca_nome:barraca?.nome||'Barraca'});
     });
   });
   const ordem=['sexta','sabado','domingo','fora'];
   const blocos=ordem.filter(dia=>grupos[dia]?.length).map(dia=>{
     const linhas=grupos[dia].sort((a,b)=>String(a.timestamp).localeCompare(String(b.timestamp))).map(mov=>{
       const devolucao=mov.tipo==='devolucao';
-      return `<div style="padding:8px 0;border-top:1px solid #f0dfc2;color:${devolucao?'#b42318':'var(--cinza)'};font-size:.82rem">
-        ${devolucao?'↩ ':''}<strong>${escapeHtml(mov.hora||'--:--')}</strong> · ${escapeHtml(mov.item_nome)} → ${escapeHtml(mov.barraca_nome)} · ${formatArraiaQtd(mov.quantidade,mov.item_unidade)}
+      return `<div style="padding:8px 0;border-top:1px solid #f0dfc2;color:${devolucao?'#b42318':'var(--cinza)'};font-size:.82rem;display:flex;justify-content:space-between;gap:8px;align-items:center">
+        <span>${devolucao?'↩ ':''}<strong>${escapeHtml(mov.hora||'--:--')}</strong> · ${escapeHtml(mov.item_nome)} → ${escapeHtml(mov.barraca_nome)} · ${formatArraiaQtd(mov.quantidade,mov.item_unidade)}</span>
+        <button type="button" class="btn-sm bsr" style="padding:5px 9px;font-size:.72rem" onclick="excluirMovimentoAlmoxArraia('${mov.item_id}','${mov.id}')">🗑️</button>
       </div>`;
     }).join('');
     return `<details open style="padding:12px;border:1px solid #efe4cf;border-radius:16px;background:#fffaf2">
