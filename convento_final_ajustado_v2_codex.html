@@ -16254,6 +16254,43 @@ function salvarEdicaoEstoqueAlmoxArraia(itemId=''){
   renderArraiaResumo();
   showToast('Quantidade ajustada.');
 }
+function abrirEdicaoBarracasAlmoxArraia(itemId=''){
+  const panel=document.getElementById(`arraia-mov-${itemId}`);
+  if(!panel)return;
+  const st=getArraiaState();
+  const item=st.almoxarifado.find(i=>i.id===itemId); if(!item)return;
+  const todas=item.barracas_vinculadas==='todas'||!Array.isArray(item.barracas_vinculadas)||!item.barracas_vinculadas.length;
+  const checks=ARRAIA_BARRACAS_PADRAO.map(b=>{
+    const checked=!todas&&item.barracas_vinculadas.includes(b.id);
+    return `<label style="display:flex;gap:8px;align-items:center;padding:8px 10px;border:1px solid #efe4cf;border-radius:12px;background:#fffaf2;font-size:.82rem;color:var(--cinza)"><input class="arraia-edit-barraca-${itemId}" type="checkbox" value="${b.id}" ${checked?'checked':''}> ${getArraiaBarracaIcon(b.id)} ${escapeHtml(b.nome)}</label>`;
+  }).join('');
+  panel.innerHTML=`<div style="margin-top:12px;padding:12px;border:1px dashed #e5d2aa;border-radius:16px;background:#fffaf2">
+    <h4 style="margin:0 0 8px;color:var(--marrom)">🎪 Barracas que podem usar este produto</h4>
+    <label style="display:flex;gap:8px;align-items:center;margin:8px 0;color:var(--cinza);font-size:.86rem">
+      <input id="arraia-edit-todas-${itemId}" type="checkbox" ${todas?'checked':''} onchange="toggleEdicaoBarracasAlmoxArraia('${itemId}')"> Todas as barracas
+    </label>
+    <div id="arraia-edit-barracas-wrap-${itemId}" style="display:${todas?'none':'grid'};grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:8px 0">${checks}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+      <button type="button" class="btn-sm bsv" onclick="salvarEdicaoBarracasAlmoxArraia('${itemId}')">💾 Salvar barracas</button>
+      <button type="button" class="btn-sm bsr" onclick="cancelarMovimentoAlmoxArraia('${itemId}')">Cancelar</button>
+    </div>
+  </div>`;
+}
+function toggleEdicaoBarracasAlmoxArraia(itemId=''){
+  const todas=document.getElementById(`arraia-edit-todas-${itemId}`)?.checked!==false;
+  const wrap=document.getElementById(`arraia-edit-barracas-wrap-${itemId}`);
+  if(wrap)wrap.style.display=todas?'none':'grid';
+}
+function salvarEdicaoBarracasAlmoxArraia(itemId=''){
+  const st=getArraiaState();
+  const item=st.almoxarifado.find(i=>i.id===itemId); if(!item)return;
+  const todas=document.getElementById(`arraia-edit-todas-${itemId}`)?.checked!==false;
+  const ids=[...document.querySelectorAll(`.arraia-edit-barraca-${itemId}:checked`)].map(el=>el.value);
+  item.barracas_vinculadas=todas||!ids.length?'todas':ids;
+  setArraiaState(st);
+  renderArraiaAlmoxarifado();
+  showToast('Barracas do produto atualizadas.');
+}
 function confirmarMovimentoAlmoxArraia(itemId='',tipo='entrega'){
   const st=getArraiaState();
   const item=st.almoxarifado.find(i=>i.id===itemId); if(!item)return;
@@ -16381,6 +16418,7 @@ function renderArraiaAlmoxarifado(){
         <button type="button" class="btn-sm bsv" onclick="abrirMovimentoAlmoxArraia('${item.id}','entrega')">📤 Registrar saída</button>
         <button type="button" class="btn-sm bsc" onclick="abrirMovimentoAlmoxArraia('${item.id}','devolucao')">↩ Devolução</button>
         <button type="button" class="btn-sm bsc" onclick="abrirEdicaoEstoqueAlmoxArraia('${item.id}')">✏️ Ajustar estoque</button>
+        <button type="button" class="btn-sm bsc" onclick="abrirEdicaoBarracasAlmoxArraia('${item.id}')">🎪 Barracas</button>
         <button type="button" class="btn-sm bsr" onclick="excluirItemAlmoxArraia('${item.id}')">🗑️</button>
       </div>
       <div id="arraia-mov-${item.id}"></div>
