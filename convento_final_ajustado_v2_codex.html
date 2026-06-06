@@ -16001,7 +16001,16 @@ function normalizarEstadoArraia(raw){
         dia_festa:['sexta','sabado','domingo'].includes(h.dia_festa)?h.dia_festa:null,
         hora:String(h.hora||'').trim(),
         timestamp:String(h.timestamp||new Date().toISOString()).trim()
-      })).filter(h=>h.barraca_id&&h.quantidade>0):[]
+      })).filter(h=>h.barraca_id&&h.quantidade>0):[],
+      historico_ajustes:Array.isArray(item.historico_ajustes)?item.historico_ajustes.map(h=>({
+        id:h.id||arraiaUid('aju'),
+        saldo_anterior:moneyNumber(h.saldo_anterior||0),
+        saldo_novo:moneyNumber(h.saldo_novo||0),
+        delta:moneyNumber(h.delta||0),
+        data_iso:String(h.data_iso||'').trim(),
+        hora:String(h.hora||'').trim(),
+        timestamp:String(h.timestamp||new Date().toISOString()).trim()
+      })):[]
     };
   }).filter(item=>item.nome);
   return {
@@ -16205,13 +16214,12 @@ function abrirEdicaoEstoqueAlmoxArraia(itemId=''){
   if(!panel)return;
   const st=getArraiaState();
   const item=st.almoxarifado.find(i=>i.id===itemId); if(!item)return;
+  const temHistorico=(item.historico_saidas||[]).length>0;
   panel.innerHTML=`<div style="margin-top:12px;padding:12px;border:1px dashed #e5d2aa;border-radius:16px;background:#fffaf2">
     <h4 style="margin:0 0 8px;color:var(--marrom)">✏️ Ajustar quantidade do estoque</h4>
-    <div style="font-size:.76rem;color:var(--cinza);margin-bottom:10px">Use quando o número foi digitado errado. O histórico de saídas e devoluções continua preservado.</div>
-    <div class="frow">
-      <div><label class="fl first">Quantidade inicial</label><input id="arraia-edit-inicial-${itemId}" class="fi" type="number" min="0" step="0.01" value="${moneyNumber(item.quantidade_inicial||0)}"></div>
-      <div><label class="fl">Saldo atual</label><input id="arraia-edit-atual-${itemId}" class="fi" type="number" min="0" step="0.01" value="${moneyNumber(item.quantidade_atual||0)}"></div>
-    </div>
+    <div style="font-size:.76rem;color:var(--cinza);margin-bottom:10px">${temHistorico?'Use para corrigir o saldo físico atual. O histórico de saídas e devoluções continua preservado.':'Use quando o número foi digitado errado no cadastro. Como ainda não há histórico, o cadastro inicial também será corrigido.'}</div>
+    <label class="fl first">Saldo atual correto</label>
+    <input id="arraia-edit-atual-${itemId}" class="fi" type="number" min="0" step="0.01" value="${moneyNumber(item.quantidade_atual||0)}">
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
       <button type="button" class="btn-sm bsv" onclick="salvarEdicaoEstoqueAlmoxArraia('${itemId}')">💾 Salvar ajuste</button>
       <button type="button" class="btn-sm bsr" onclick="cancelarMovimentoAlmoxArraia('${itemId}')">Cancelar</button>
@@ -16221,10 +16229,25 @@ function abrirEdicaoEstoqueAlmoxArraia(itemId=''){
 function salvarEdicaoEstoqueAlmoxArraia(itemId=''){
   const st=getArraiaState();
   const item=st.almoxarifado.find(i=>i.id===itemId); if(!item)return;
-  const inicial=moneyNumber(document.getElementById(`arraia-edit-inicial-${itemId}`)?.value||0);
+  const anterior=moneyNumber(item.quantidade_atual||0);
   const atual=moneyNumber(document.getElementById(`arraia-edit-atual-${itemId}`)?.value||0);
-  if(inicial<0||atual<0){showToast('As quantidades não podem ser negativas.');return;}
-  item.quantidade_inicial=inicial;
+  if(atual<0){showToast('A quantidade não pode ser negativa.');return;}
+  if(!(item.historico_saidas||[]).length){
+    item.quantidade_inicial=atual;
+  }
+  if(atual!==anterior){
+    const now=new Date();
+    item.historico_ajustes=item.historico_ajustes||[];
+    item.historico_ajustes.push({
+      id:arraiaUid('aju'),
+      saldo_anterior:anterior,
+      saldo_novo:atual,
+      delta:moneyNumber(atual-anterior),
+      data_iso:now.toISOString().slice(0,10),
+      hora:now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+      timestamp:now.toISOString()
+    });
+  }
   item.quantidade_atual=atual;
   setArraiaState(st);
   renderArraiaAlmoxarifado();
@@ -16327,7 +16350,8 @@ function renderHistoricoMovimentosArraia(item={}){
     const verbo=total<0?'voltaram':'saíram';
     return `<div style="padding:8px 0;border-top:1px solid #f0dfc2"><strong style="color:var(--marrom)">${escapeHtml(getArraiaDiaLabel(dia))} — ${formatArraiaQtd(Math.abs(total),item.unidade)} ${verbo}</strong>${linhas}</div>`;
   }).join('');
-  return blocos||'<div class="empty">Nenhuma movimentação registrada.</div>';
+  const ajustes=(item.historico_ajustes||[]).length?`<div style="padding:8px 0;border-top:1px solid #f0dfc2"><strong style="color:var(--marrom)">Ajustes de estoque</strong>${(item.historico_ajustes||[]).sort((a,b)=>String(a.timestamp).localeCompare(String(b.timestamp))).map(a=>`<div style="font-size:.8rem;color:var(--cinza);padding:5px 0">${escapeHtml(a.hora||'--:--')} · ${formatArraiaQtd(a.saldo_anterior,item.unidade)} → ${formatArraiaQtd(a.saldo_novo,item.unidade)} <span style="color:${moneyNumber(a.delta)<0?'#b42318':'#1f8a4c'}">(${moneyNumber(a.delta)>0?'+':''}${formatArraiaQtd(a.delta,item.unidade)})</span></div>`).join('')}</div>`:'';
+  return (blocos+ajustes)||'<div class="empty">Nenhuma movimentação registrada.</div>';
 }
 function renderArraiaAlmoxarifado(){
   renderArraiaBarracasCheckboxes();
@@ -16401,10 +16425,19 @@ function renderHistoricoGeralArraia(st=getArraiaState()){
       grupos[dia]=grupos[dia]||[];
       grupos[dia].push({...mov,item_id:item.id,item_nome:item.nome,item_unidade:item.unidade,barraca_nome:barraca?.nome||'Barraca'});
     });
+    (item.historico_ajustes||[]).forEach(ajuste=>{
+      grupos.ajustes=grupos.ajustes||[];
+      grupos.ajustes.push({...ajuste,tipo:'ajuste',item_id:item.id,item_nome:item.nome,item_unidade:item.unidade});
+    });
   });
-  const ordem=['sexta','sabado','domingo','fora'];
+  const ordem=['sexta','sabado','domingo','fora','ajustes'];
   const blocos=ordem.filter(dia=>grupos[dia]?.length).map(dia=>{
     const linhas=grupos[dia].sort((a,b)=>String(a.timestamp).localeCompare(String(b.timestamp))).map(mov=>{
+      if(mov.tipo==='ajuste'){
+        return `<div style="padding:8px 0;border-top:1px solid #f0dfc2;color:var(--cinza);font-size:.82rem">
+          <strong>${escapeHtml(mov.hora||'--:--')}</strong> · ${escapeHtml(mov.item_nome)} · ${formatArraiaQtd(mov.saldo_anterior,mov.item_unidade)} → ${formatArraiaQtd(mov.saldo_novo,mov.item_unidade)} <span style="color:${moneyNumber(mov.delta)<0?'#b42318':'#1f8a4c'}">(${moneyNumber(mov.delta)>0?'+':''}${formatArraiaQtd(mov.delta,mov.item_unidade)})</span>
+        </div>`;
+      }
       const devolucao=mov.tipo==='devolucao';
       return `<div style="padding:8px 0;border-top:1px solid #f0dfc2;color:${devolucao?'#b42318':'var(--cinza)'};font-size:.82rem;display:flex;justify-content:space-between;gap:8px;align-items:center">
         <span>${devolucao?'↩ ':''}<strong>${escapeHtml(mov.hora||'--:--')}</strong> · ${escapeHtml(mov.item_nome)} → ${escapeHtml(mov.barraca_nome)} · ${formatArraiaQtd(mov.quantidade,mov.item_unidade)}</span>
@@ -16412,7 +16445,7 @@ function renderHistoricoGeralArraia(st=getArraiaState()){
       </div>`;
     }).join('');
     return `<details open style="padding:12px;border:1px solid #efe4cf;border-radius:16px;background:#fffaf2">
-      <summary style="cursor:pointer;font-weight:900;color:var(--marrom)">${escapeHtml(getArraiaDiaLabel(dia))}</summary>
+      <summary style="cursor:pointer;font-weight:900;color:var(--marrom)">${dia==='ajustes'?'Ajustes de estoque':escapeHtml(getArraiaDiaLabel(dia))}</summary>
       ${linhas}
     </details>`;
   }).join('');
