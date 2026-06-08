@@ -2283,8 +2283,22 @@ mark{background:#fff59d;border-radius:2px;}
       <button class="btn btn-ouro" onclick="registrarItemAlmoxarifadoArraia()">➕ Adicionar ao almoxarifado</button>
     </div>
     <div class="card" style="margin-bottom:12px">
-      <label class="fl first">🔎 Buscar item no almoxarifado</label>
-      <input id="arraia-almox-busca" class="fi" type="search" placeholder="Digite para buscar óleo, copo, papel..." oninput="renderArraiaAlmoxarifado()">
+      <div class="frow">
+        <div>
+          <label class="fl first">🔎 Buscar item no almoxarifado</label>
+          <input id="arraia-almox-busca" class="fi" type="search" placeholder="Digite para buscar óleo, copo, papel..." oninput="renderArraiaAlmoxarifado()">
+        </div>
+        <div>
+          <label class="fl">Ordenar por</label>
+          <select id="arraia-almox-ordem" class="fi" onchange="renderArraiaAlmoxarifado()">
+            <option value="az">Ordem alfabética A-Z</option>
+            <option value="za">Ordem alfabética Z-A</option>
+            <option value="recentes">Adicionados recentemente</option>
+            <option value="menor">Menor quantidade</option>
+            <option value="maior">Maior quantidade</option>
+          </select>
+        </div>
+      </div>
     </div>
     <div id="arraia-almox-lista"><div class="empty">Carregando...</div></div>
   </div>
@@ -16404,10 +16418,17 @@ function renderArraiaAlmoxarifado(){
   const st=getArraiaState();
   if(!st.almoxarifado.length){box.innerHTML='<div class="empty">Nenhum item cadastrado no almoxarifado.</div>';return;}
   const termo=normalizarBuscaArraia(document.getElementById('arraia-almox-busca')?.value||'');
+  const ordem=document.getElementById('arraia-almox-ordem')?.value||'az';
   const itens=st.almoxarifado.filter(item=>{
     if(!termo)return true;
     const hay=normalizarBuscaArraia(`${item.nome} ${item.categoria} ${item.unidade}`);
     return hay.includes(termo);
+  }).sort((a,b)=>{
+    if(ordem==='za')return String(b.nome||'').localeCompare(String(a.nome||''),'pt-BR',{sensitivity:'base'});
+    if(ordem==='recentes')return String(b.id||'').localeCompare(String(a.id||''));
+    if(ordem==='menor')return moneyNumber(a.quantidade_atual||0)-moneyNumber(b.quantidade_atual||0);
+    if(ordem==='maior')return moneyNumber(b.quantidade_atual||0)-moneyNumber(a.quantidade_atual||0);
+    return String(a.nome||'').localeCompare(String(b.nome||''),'pt-BR',{sensitivity:'base'});
   });
   if(!itens.length){box.innerHTML='<div class="empty">Nenhum item encontrado para essa busca.</div>';return;}
   box.innerHTML=itens.map(item=>{
