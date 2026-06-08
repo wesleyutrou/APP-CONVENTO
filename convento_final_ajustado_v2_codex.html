@@ -2282,6 +2282,10 @@ mark{background:#fff59d;border-radius:2px;}
       </div>
       <button class="btn btn-ouro" onclick="registrarItemAlmoxarifadoArraia()">➕ Adicionar ao almoxarifado</button>
     </div>
+    <div class="card" style="margin-bottom:12px">
+      <label class="fl first">🔎 Buscar item no almoxarifado</label>
+      <input id="arraia-almox-busca" class="fi" type="search" placeholder="Digite para buscar óleo, copo, papel..." oninput="renderArraiaAlmoxarifado()">
+    </div>
     <div id="arraia-almox-lista"><div class="empty">Carregando...</div></div>
   </div>
   <div id="sub-arraia-resumo" class="screen" style="padding:12px 0 0">
@@ -16099,6 +16103,9 @@ function getArraiaTotalMovDia(item={},dia='sexta'){
     .filter(mov=>mov.dia_festa===dia)
     .reduce((acc,mov)=>acc+(mov.tipo==='devolucao'?-moneyNumber(mov.quantidade):moneyNumber(mov.quantidade)),0);
 }
+function normalizarBuscaArraia(txt=''){
+  return String(txt||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+}
 function setArraiaState(st){
   const payload=normalizarEstadoArraia(st);
   payload._updated_at=new Date().toISOString();
@@ -16396,7 +16403,14 @@ function renderArraiaAlmoxarifado(){
   const box=document.getElementById('arraia-almox-lista'); if(!box)return;
   const st=getArraiaState();
   if(!st.almoxarifado.length){box.innerHTML='<div class="empty">Nenhum item cadastrado no almoxarifado.</div>';return;}
-  box.innerHTML=st.almoxarifado.map(item=>{
+  const termo=normalizarBuscaArraia(document.getElementById('arraia-almox-busca')?.value||'');
+  const itens=st.almoxarifado.filter(item=>{
+    if(!termo)return true;
+    const hay=normalizarBuscaArraia(`${item.nome} ${item.categoria} ${item.unidade}`);
+    return hay.includes(termo);
+  });
+  if(!itens.length){box.innerHTML='<div class="empty">Nenhum item encontrado para essa busca.</div>';return;}
+  box.innerHTML=itens.map(item=>{
     const atual=moneyNumber(item.quantidade_atual||0);
     const vinc=item.barracas_vinculadas==='todas'?'Todas as barracas':(item.barracas_vinculadas||[]).map(id=>getArraiaBarracaById(id)?.nome).filter(Boolean).join(', ');
     const embTxt=formatArraiaQtdEmb(item,atual);
@@ -16405,12 +16419,16 @@ function renderArraiaAlmoxarifado(){
       const cor=totalDia<0?'#b42318':'var(--marrom)';
       return `<div style="padding:10px;border:1px solid #efe4cf;border-radius:14px;background:#fffaf2"><div style="font-size:.68rem;letter-spacing:.08em;font-weight:800;color:var(--cinza)">${escapeHtml(d.label).toUpperCase()}</div><strong style="color:${cor}">${formatArraiaQtd(Math.abs(totalDia),item.unidade)}</strong></div>`;
     }).join('');
-    return `<div class="card" style="margin-bottom:12px">
-      <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap">
-        <div><h3>📦 ${escapeHtml(item.nome)}</h3><div style="font-size:.76rem;color:var(--cinza)">${escapeHtml(item.categoria)} · ${escapeHtml(getArraiaLabelUnidadeCurta(item.unidade))} · ${escapeHtml(vinc)}</div></div>
-        <span class="pill">${escapeHtml(item.categoria)} · ${escapeHtml(getArraiaLabelUnidadeCurta(item.unidade))}</span>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:14px 0">
+    return `<details class="card" style="margin-bottom:10px;padding:0;overflow:hidden">
+      <summary style="cursor:pointer;list-style:none;padding:14px 16px;display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">
+        <div>
+          <strong style="font-family:Lora,serif;font-size:1.05rem;color:var(--marrom)">📦 ${escapeHtml(item.nome)}</strong>
+          <div style="font-size:.76rem;color:var(--cinza);margin-top:3px">${escapeHtml(item.categoria)} · ${escapeHtml(getArraiaLabelUnidadeCurta(item.unidade))} · ${escapeHtml(vinc)}</div>
+        </div>
+        <span class="pill" style="font-weight:900;color:var(--ouro)">Saldo: ${formatArraiaQtd(atual,item.unidade)}</span>
+      </summary>
+      <div style="padding:0 16px 16px">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:4px 0 14px">
         <div style="padding:12px;border:1px solid #efe4cf;border-radius:16px;background:var(--ouro-pale)"><div style="font-size:.68rem;letter-spacing:.08em;font-weight:800;color:var(--cinza)">SALDO ATUAL</div><div style="font-size:1.75rem;font-weight:900;color:var(--ouro)">${formatArraiaQtd(atual,item.unidade)}</div>${embTxt?`<div style="font-size:.72rem;color:var(--cinza)">${escapeHtml(embTxt)}</div>`:''}</div>
         ${diasCards}
       </div>
@@ -16423,7 +16441,8 @@ function renderArraiaAlmoxarifado(){
       </div>
       <div id="arraia-mov-${item.id}"></div>
       <details style="margin-top:12px"><summary style="cursor:pointer;color:var(--marrom);font-weight:800">Histórico</summary>${renderHistoricoMovimentosArraia(item)}</details>
-    </div>`;
+      </div>
+    </details>`;
   }).join('');
 }
 function getArraiaResumoBarraca(barraca={}){
