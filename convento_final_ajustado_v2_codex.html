@@ -2096,6 +2096,10 @@ mark{background:#fff59d;border-radius:2px;}
       <div class="icon">🎪</div><h3>Arraiá</h3><p>Barracas, almoxarifado e compras</p>
       <span class="hcard-metric" id="hm-arraia"></span>
     </div>
+    <div class="hcard size-sm" onclick="ir('galinheiro')">
+      <div class="icon">🐔</div><h3>Galinheiro</h3><p>Ovos, ração, limpeza e saúde</p>
+      <span class="hcard-metric" id="hm-galinheiro"></span>
+    </div>
     <div class="hcard size-sm" id="card-loja" onclick="ir('loja')">
 <div class="icon">🏪</div><h3>Loja</h3><p>Vendas e estoque</p>
       <span class="hcard-metric" id="hm-loja"></span>
@@ -2153,6 +2157,7 @@ mark{background:#fff59d;border-radius:2px;}
         <button class="side-item" data-modulo="dinheiro" onclick="ir('dinheiro')"><span class="si-ic">💵</span><span>Dinheiro</span></button>
         <button class="side-item" data-modulo="veiculos" onclick="ir('veiculos')"><span class="si-ic">🚗</span><span>Veículos</span></button>
         <button class="side-item" data-modulo="arraia" onclick="ir('arraia')"><span class="si-ic">🎪</span><span>Arraiá</span></button>
+        <button class="side-item" data-modulo="galinheiro" onclick="ir('galinheiro')"><span class="si-ic">🐔</span><span>Galinheiro</span></button>
         <button class="side-item" data-modulo="manutencao" onclick="ir('manutencao')"><span class="si-ic">🧰</span><span>Manutenção</span></button>
         <button class="side-item frei-only" data-modulo="compras" onclick="ir('compras')"><span class="si-ic">🛒</span><span>Compras</span></button>
       </div>
@@ -2246,10 +2251,23 @@ mark{background:#fff59d;border-radius:2px;}
       <div id="arraia-barracas-cards" class="arraia-barracas-grid"></div>
     </div>
     <div class="card" style="margin-bottom:12px">
-      <label class="fl first">Selecionar barraca</label>
-      <select id="arraia-barraca-select" class="fi" onchange="setArraiaBarracaAtual(this.value)">
-        <option value="">Selecione a barraca...</option>
-      </select>
+      <div class="frow">
+        <div>
+          <label class="fl first">Selecionar barraca</label>
+          <select id="arraia-barraca-select" class="fi" onchange="setArraiaBarracaAtual(this.value)">
+            <option value="">Selecione a barraca...</option>
+          </select>
+        </div>
+        <div>
+          <label class="fl">Ordenar itens por</label>
+          <select id="arraia-barraca-ordem" class="fi" onchange="renderArraiaBarracas()">
+            <option value="az">Ordem alfabética A-Z</option>
+            <option value="za">Ordem alfabética Z-A</option>
+            <option value="acabando">Itens acabando</option>
+            <option value="maior">Maior quantidade</option>
+          </select>
+        </div>
+      </div>
     </div>
     <div id="arraia-barraca-painel"><div class="empty">Selecione uma barraca para começar.</div></div>
   </div>
@@ -2304,6 +2322,95 @@ mark{background:#fff59d;border-radius:2px;}
   </div>
   <div id="sub-arraia-resumo" class="screen" style="padding:12px 0 0">
     <div id="arraia-resumo-wrap"><div class="empty">Carregando...</div></div>
+  </div>
+</div>
+
+<!-- ══════ GALINHEIRO ══════ -->
+<div id="screen-galinheiro" class="screen">
+  <div class="tabs">
+    <button class="tab-btn active" onclick="stab('galinheiro','painel',this);carregarGalinheiro()">🐔 Painel</button>
+    <button class="tab-btn" onclick="stab('galinheiro','ovos',this);renderGalinheiroOvos()">🥚 Ovos</button>
+    <button class="tab-btn" onclick="stab('galinheiro','racao',this);renderGalinheiroRacao()">🌾 Ração</button>
+    <button class="tab-btn" onclick="stab('galinheiro','limpeza',this);renderGalinheiroLimpeza()">🧹 Limpeza</button>
+    <button class="tab-btn" onclick="stab('galinheiro','saude',this);renderGalinheiroSaude()">💉 Saúde</button>
+    <button class="tab-btn" onclick="stab('galinheiro','relatorios',this);renderGalinheiroRelatorios()">📊 Relatórios</button>
+    <button class="tab-btn admin-only" onclick="stab('galinheiro','config',this);renderGalinheiroConfig()">⚙️ Config.</button>
+  </div>
+  <div id="galinheiro-sync-status" style="margin:10px 0 2px;padding:10px 12px;border:1px solid #efe4cf;border-radius:14px;background:#fffaf2;font-size:.78rem;color:var(--cinza)">Atualizado em: —</div>
+  <div id="sub-galinheiro-painel" class="screen active" style="padding:12px 0 0">
+    <div id="galinheiro-painel-wrap"><div class="empty">Carregando...</div></div>
+  </div>
+  <div id="sub-galinheiro-ovos" class="screen" style="padding:12px 0 0">
+    <div class="card" style="margin-bottom:12px">
+      <h3>🥚 Registro diário de ovos</h3>
+      <p style="font-size:.79rem;color:var(--cinza);margin-bottom:10px">Registre a coleta do dia. Se já existir registro para esta data, o app atualiza o lançamento.</p>
+      <div class="frow">
+        <div><label class="fl first">Data</label><input id="gal-ovos-data" class="fi" type="date"></div>
+        <div><label class="fl">Ovos coletados</label><input id="gal-ovos-total" class="fi" type="number" min="0" step="1" placeholder="0" oninput="atualizarPreviewOvosGalinheiro()"></div>
+      </div>
+      <div class="frow">
+        <div><label class="fl">Consumo interno</label><input id="gal-ovos-consumo" class="fi" type="number" min="0" step="1" placeholder="0" oninput="atualizarPreviewOvosGalinheiro()"></div>
+        <div><label class="fl">Venda</label><input id="gal-ovos-venda" class="fi" type="number" min="0" step="1" placeholder="0" oninput="atualizarPreviewOvosGalinheiro()"></div>
+      </div>
+      <label class="fl">Observações</label>
+      <textarea id="gal-ovos-obs" class="fi" rows="2" style="resize:none" placeholder="Anotações do dia..."></textarea>
+      <div id="gal-ovos-preview" style="margin-top:10px;padding:10px 12px;border-radius:14px;background:var(--ouro-pale);font-size:.84rem;color:var(--marrom)">Taxa de postura: —</div>
+      <button class="btn btn-ouro" onclick="salvarOvosGalinheiro()">✅ Salvar ovos do dia</button>
+    </div>
+    <div id="galinheiro-ovos-hist"></div>
+  </div>
+  <div id="sub-galinheiro-racao" class="screen" style="padding:12px 0 0">
+    <div class="card" style="margin-bottom:12px">
+      <h3>🌾 Entrada de ração</h3>
+      <div class="frow">
+        <div><label class="fl first">Data</label><input id="gal-racao-data" class="fi" type="date"></div>
+        <div><label class="fl">Quantidade (kg)</label><input id="gal-racao-qtd" class="fi" type="number" min="0" step="0.01" placeholder="0"></div>
+      </div>
+      <label class="fl">Fornecedor / origem</label>
+      <input id="gal-racao-forn" class="fi" type="text" placeholder="Opcional">
+      <button class="btn btn-ouro" onclick="salvarEntradaRacaoGalinheiro()">➕ Registrar entrada</button>
+    </div>
+    <div id="galinheiro-racao-wrap"></div>
+  </div>
+  <div id="sub-galinheiro-limpeza" class="screen" style="padding:12px 0 0">
+    <div class="card" style="margin-bottom:12px">
+      <h3>🧹 Registrar limpeza</h3>
+      <div class="frow">
+        <div><label class="fl first">Data</label><input id="gal-limpeza-data" class="fi" type="date"></div>
+        <div><label class="fl">Tipo</label><select id="gal-limpeza-tipo" class="fi"><option value="galinheiro">Galinheiro</option><option value="ninhos">Ninhos</option><option value="desinfeccao">Desinfecção mensal</option></select></div>
+      </div>
+      <label class="fl">Responsável</label>
+      <input id="gal-limpeza-resp" class="fi" type="text" placeholder="Opcional">
+      <label class="fl">Observações</label>
+      <textarea id="gal-limpeza-obs" class="fi" rows="2" style="resize:none" placeholder="Opcional"></textarea>
+      <button class="btn btn-ouro" onclick="salvarLimpezaGalinheiro()">✅ Registrar limpeza</button>
+    </div>
+    <div id="galinheiro-limpeza-wrap"></div>
+  </div>
+  <div id="sub-galinheiro-saude" class="screen" style="padding:12px 0 0">
+    <div class="card" style="margin-bottom:12px">
+      <h3>💉 Saúde das aves</h3>
+      <div class="frow">
+        <div><label class="fl first">Tipo</label><select id="gal-saude-tipo" class="fi"><option>Vacina</option><option>Vermífugo</option><option>Outro</option></select></div>
+        <div><label class="fl">Produto aplicado</label><input id="gal-saude-prod" class="fi" type="text" placeholder="Nome do produto"></div>
+      </div>
+      <div class="frow">
+        <div><label class="fl">Data de aplicação</label><input id="gal-saude-data" class="fi" type="date"></div>
+        <div><label class="fl">Próxima dose</label><input id="gal-saude-prox" class="fi" type="date"></div>
+      </div>
+      <div class="frow">
+        <div><label class="fl">Aves tratadas</label><input id="gal-saude-aves" class="fi" type="number" min="0" step="1" placeholder="0"></div>
+        <div><label class="fl">Observações</label><input id="gal-saude-obs" class="fi" type="text" placeholder="Opcional"></div>
+      </div>
+      <button class="btn btn-ouro" onclick="salvarSaudeGalinheiro()">✅ Registrar procedimento</button>
+    </div>
+    <div id="galinheiro-saude-wrap"></div>
+  </div>
+  <div id="sub-galinheiro-relatorios" class="screen" style="padding:12px 0 0">
+    <div id="galinheiro-relatorios-wrap"><div class="empty">Carregando...</div></div>
+  </div>
+  <div id="sub-galinheiro-config" class="screen" style="padding:12px 0 0">
+    <div id="galinheiro-config-wrap"><div class="empty">Carregando...</div></div>
   </div>
 </div>
 
@@ -3465,6 +3572,10 @@ const STORAGE_ARRAIA = 'convento_arraia_v1';
 const CHAVE_ARRAIA_COMPARTILHADO = 'arraia_estado_compartilhado';
 let syncArraiaRemotaBloqueada = false;
 let arraiaSyncInfo = {modo:'local', atualizadoEm:'', detalhe:'Ainda não sincronizado.'};
+const STORAGE_GALINHEIRO = 'convento_galinheiro_v1';
+const CHAVE_GALINHEIRO_COMPARTILHADO = 'galinheiro_estado_compartilhado';
+let syncGalinheiroRemotaBloqueada = false;
+let galinheiroSyncInfo = {modo:'local', atualizadoEm:'', detalhe:'Ainda não sincronizado.'};
 const ARRAIA_BARRACAS_PADRAO = [
   {id:'pastel',nome:'Pastel'},
   {id:'churrasco',nome:'Churrasco'},
@@ -13972,8 +14083,8 @@ Object.assign(CREDENCIAIS,{
   'irmao kelven':    {hash:btoa('provisoria'),    tipo:'irmao',    area:'veiculos',     modulos:['veiculos'], label:'Irmão Kelven'},
   'irmaofelipe':     {hash:btoa('provisoria'),    tipo:'irmao',    area:'manutencao',   modulos:['secretaria','manutencao'], label:'Irmão Felipe'},
   'irmao felipe':    {hash:btoa('provisoria'),    tipo:'irmao',    area:'manutencao',   modulos:['secretaria','manutencao'], label:'Irmão Felipe'},
-  'irmaodaniel':     {hash:btoa('provisoria'),    tipo:'irmao',    area:'equipamentos', modulos:['equipamentos'], label:'Irmão Daniel'},
-  'irmao daniel':    {hash:btoa('provisoria'),    tipo:'irmao',    area:'equipamentos', modulos:['equipamentos'], label:'Irmão Daniel'}
+  'irmaodaniel':     {hash:btoa('provisoria'),    tipo:'irmao',    area:'galinheiro', modulos:['galinheiro'], label:'Irmão Daniel'},
+  'irmao daniel':    {hash:btoa('provisoria'),    tipo:'irmao',    area:'galinheiro', modulos:['galinheiro'], label:'Irmão Daniel'}
 });
 
 Object.assign(CREDENCIAIS,{
@@ -13987,7 +14098,7 @@ Object.assign(CREDENCIAIS,{
   'irmaojorge':      {hash:btoa('irmaojorge'),     tipo:'irmao', area:'loja',         modulos:['loja'], label:'Irmão Jorge'},
   'irmaokelven':     {hash:btoa('irmaokelven'),    tipo:'irmao', area:'veiculos',     modulos:['veiculos'], label:'Irmão Kelven'},
   'irmaofelipe':     {hash:btoa('irmaofelipe'),    tipo:'irmao', area:'manutencao',   modulos:['secretaria','manutencao'], label:'Irmão Felipe'},
-  'irmaodaniel':     {hash:btoa('irmaodaniel'),    tipo:'irmao', area:'equipamentos', modulos:['equipamentos'], label:'Irmão Daniel'}
+  'irmaodaniel':     {hash:btoa('irmaodaniel'),    tipo:'irmao', area:'galinheiro', modulos:['galinheiro'], label:'Irmão Daniel'}
 });
 
 // MODULOS_VISAO_GERAL já definido acima
@@ -14015,7 +14126,7 @@ function resolverCredencialLogin(user=''){
   return CREDENCIAIS[chaveLoginCanonica(user)] || CREDENCIAIS[user] || null;
 }
 
-const HOME_MODULOS_VISIVEIS=['veiculos','arraia'];
+const HOME_MODULOS_VISIVEIS=['veiculos','arraia','galinheiro'];
 function moduloVisivelNaHome(modulo=''){
   const chave=String(modulo||'').trim().toLowerCase();
   if(!chave)return false;
@@ -14155,11 +14266,12 @@ ir = function(tela){
   document.getElementById('screen-'+tela).classList.add('active');
   document.getElementById('back-btn').style.display='block';
   atualizarBadgeMesHeader(tela);
-  const t={mural:'Mural',oficios:'Ofícios',dispensa:'Dispensa',dinheiro:'Dinheiro',veiculos:'Veículos',arraia:'Arraiá',manutencao:'Manutenção',hospedaria:'Hospedaria',saude:'Saúde',compras:'Compras',loja:'Loja',contab:'Contabilidade',relatorio:'Prestação de Contas',assistente:'Assistente',config:'Config.',horta:'Horta'};
+  const t={mural:'Mural',oficios:'Ofícios',dispensa:'Dispensa',dinheiro:'Dinheiro',veiculos:'Veículos',arraia:'Arraiá',galinheiro:'Galinheiro',manutencao:'Manutenção',hospedaria:'Hospedaria',saude:'Saúde',compras:'Compras',loja:'Loja',contab:'Contabilidade',relatorio:'Prestação de Contas',assistente:'Assistente',config:'Config.',horta:'Horta'};
   document.getElementById('hdr-title').textContent=t[tela]||'Noviciado';
   if(tela==='relatorio')atualizarRelatorio();
   if(tela==='veiculos'){garantirSubAbaAtiva('veiculos','painel');renderVeiculos();}
   if(tela==='arraia'){garantirSubAbaAtiva('arraia','barracas');carregarArraia();}
+  if(tela==='galinheiro'){garantirSubAbaAtiva('galinheiro','painel');carregarGalinheiro();}
   if(tela==='mural')carregarMural();
   if(tela==='oficios'){garantirSubAbaAtiva('oficios','escala');carregarEscalaHoje();}
   if(tela==='dispensa'){garantirSubAbaAtiva('dispensa','cozinha');carregarDispensa('cozinha');}
@@ -16484,9 +16596,15 @@ function renderArraiaPainelBarraca(barraca){
   const box=document.getElementById('arraia-barraca-painel'); if(!box)return;
   if(!barraca){box.innerHTML='<div class="empty">Selecione uma barraca para consultar.</div>';return;}
   const resumo=getArraiaResumoBarraca(barraca);
+  const ordem=document.getElementById('arraia-barraca-ordem')?.value||'az';
   const itens=(barraca.itens||[])
     .filter(item=>moneyNumber(item.quantidade_total_entregue||0)>0)
-    .sort((a,b)=>String(a.nome||'').localeCompare(String(b.nome||''),'pt-BR',{sensitivity:'base'}));
+    .sort((a,b)=>{
+      if(ordem==='za')return String(b.nome||'').localeCompare(String(a.nome||''),'pt-BR',{sensitivity:'base'});
+      if(ordem==='acabando')return moneyNumber(a.quantidade_total_entregue||0)-moneyNumber(b.quantidade_total_entregue||0);
+      if(ordem==='maior')return moneyNumber(b.quantidade_total_entregue||0)-moneyNumber(a.quantidade_total_entregue||0);
+      return String(a.nome||'').localeCompare(String(b.nome||''),'pt-BR',{sensitivity:'base'});
+    });
   box.innerHTML=`<div class="card" style="margin-bottom:12px">
     <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap"><div><h3>${getArraiaBarracaIcon(barraca.id)} ${escapeHtml(barraca.nome)}</h3><div style="font-size:.76rem;color:var(--cinza)">Consulta dos produtos entregues para esta barraca.</div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><span class="pill">${resumo.totalProdutos} produto(s)</span><span class="pill">${resumo.totalQtd.toLocaleString('pt-BR')} total</span></div></div>
   </div>
@@ -16551,6 +16669,442 @@ async function carregarArraia(){
   renderArraiaBarracas();
   renderArraiaAlmoxarifado();
   renderArraiaResumo();
+}
+
+// ══════════════════════════════════════════════════════
+// GALINHEIRO
+// ══════════════════════════════════════════════════════
+function galUid(prefix='gal'){
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
+}
+function normalizarEstadoGalinheiro(raw){
+  const base=raw&&typeof raw==='object'?raw:{};
+  const cfg=base.config||{};
+  return {
+    _updated_at:base._updated_at||'',
+    config:{
+      raca:String(cfg.raca||'Isa Brown').trim()||'Isa Brown',
+      aves:parseInt(cfg.aves||150)||150,
+      consumo_g_ave:moneyNumber(cfg.consumo_g_ave||120)||120,
+      limpeza_galinheiro_dias:parseInt(cfg.limpeza_galinheiro_dias||7)||7,
+      limpeza_ninhos_dias:parseInt(cfg.limpeza_ninhos_dias||7)||7,
+      desinfeccao_dias:parseInt(cfg.desinfeccao_dias||30)||30,
+      alerta_limpeza_dias:parseInt(cfg.alerta_limpeza_dias||2)||2,
+      valor_duzia:moneyNumber(cfg.valor_duzia||0),
+      estoque_minimo_dias:parseInt(cfg.estoque_minimo_dias||7)||7,
+      alerta_saude_dias:parseInt(cfg.alerta_saude_dias||5)||5
+    },
+    ovos:Array.isArray(base.ovos)?base.ovos.map(o=>({
+      id:o.id||galUid('ovo'),
+      data_iso:String(o.data_iso||o.data||'').slice(0,10),
+      total:parseInt(o.total||o.ovos||0)||0,
+      consumo:parseInt(o.consumo||0)||0,
+      venda:parseInt(o.venda||0)||0,
+      taxa:moneyNumber(o.taxa||0),
+      obs:String(o.obs||''),
+      autor:String(o.autor||''),
+      timestamp:o.timestamp||new Date().toISOString()
+    })).filter(o=>o.data_iso):[],
+    racao:Array.isArray(base.racao)?base.racao.map(r=>({
+      id:r.id||galUid('rac'),
+      data_iso:String(r.data_iso||r.data||'').slice(0,10),
+      quantidade_kg:moneyNumber(r.quantidade_kg||r.quantidade||0),
+      fornecedor:String(r.fornecedor||''),
+      autor:String(r.autor||''),
+      timestamp:r.timestamp||new Date().toISOString()
+    })).filter(r=>r.data_iso):[],
+    limpezas:Array.isArray(base.limpezas)?base.limpezas.map(l=>({
+      id:l.id||galUid('lim'),
+      data_iso:String(l.data_iso||l.data||'').slice(0,10),
+      tipo:String(l.tipo||'galinheiro'),
+      responsavel:String(l.responsavel||''),
+      obs:String(l.obs||''),
+      autor:String(l.autor||''),
+      timestamp:l.timestamp||new Date().toISOString()
+    })).filter(l=>l.data_iso):[],
+    saude:Array.isArray(base.saude)?base.saude.map(s=>({
+      id:s.id||galUid('sau'),
+      tipo:String(s.tipo||'Vacina'),
+      produto:String(s.produto||''),
+      data_iso:String(s.data_iso||s.data||'').slice(0,10),
+      proxima_iso:String(s.proxima_iso||s.proxima||'').slice(0,10),
+      aves:parseInt(s.aves||0)||0,
+      obs:String(s.obs||''),
+      autor:String(s.autor||''),
+      timestamp:s.timestamp||new Date().toISOString()
+    })).filter(s=>s.data_iso):[]
+  };
+}
+function getGalinheiroStateLocal(){
+  try{return normalizarEstadoGalinheiro(JSON.parse(localStorage.getItem(STORAGE_GALINHEIRO)||'{}'));}
+  catch{return normalizarEstadoGalinheiro({});}
+}
+function salvarGalinheiroLocal(st){
+  localStorage.setItem(STORAGE_GALINHEIRO, JSON.stringify(normalizarEstadoGalinheiro(st)));
+}
+function getGalinheiroState(){
+  return getGalinheiroStateLocal();
+}
+function fmtGalDataHora(iso=''){
+  try{return iso?new Date(iso).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'';}
+  catch{return '';}
+}
+function renderGalinheiroSyncStatus(){
+  const el=document.getElementById('galinheiro-sync-status'); if(!el)return;
+  const info=galinheiroSyncInfo||{};
+  const atualizado=info.atualizadoEm?`Atualizado em: ${info.atualizadoEm}`:'Atualizado em: —';
+  let selo='🟡 Local', cor='#7a6850';
+  if(info.modo==='sincronizado'){selo='🟢 Sincronizado';cor='#1f8a4c';}
+  else if(info.modo==='erro'){selo='🔴 Não sincronizado';cor='#b42318';}
+  else if(info.modo==='bloqueado'){selo='🟠 Somente local';cor='#b86a00';}
+  el.innerHTML=`<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><strong style="color:${cor}">${selo}</strong><span>${atualizado}</span></div>${info.detalhe?`<div style="margin-top:4px;font-size:.74rem;color:var(--cinza)">${escapeHtml(info.detalhe)}</div>`:''}`;
+}
+function galTemConteudo(st){
+  return (st.ovos||[]).length || (st.racao||[]).length || (st.limpezas||[]).length || (st.saude||[]).length;
+}
+async function sincronizarGalinheiroCompartilhado(forceLocal=false){
+  const local=getGalinheiroStateLocal();
+  if(syncGalinheiroRemotaBloqueada){
+    galinheiroSyncInfo={modo:'bloqueado',atualizadoEm:local._updated_at?fmtGalDataHora(local._updated_at):'',detalhe:'Base remota indisponível. O uso continua somente neste aparelho.'};
+    renderGalinheiroSyncStatus();
+    return local;
+  }
+  try{
+    const {data:cfg}=await sb.from('configuracoes').select('valor').eq('chave',CHAVE_GALINHEIRO_COMPARTILHADO).maybeSingle();
+    const remoto=cfg?.valor?normalizarEstadoGalinheiro(JSON.parse(cfg.valor)):normalizarEstadoGalinheiro({});
+    let escolhido=remoto;
+    if(forceLocal){
+      escolhido=local;
+      await sb.from('configuracoes').upsert({chave:CHAVE_GALINHEIRO_COMPARTILHADO, valor:JSON.stringify(escolhido)});
+      salvarGalinheiroLocal(escolhido);
+      galinheiroSyncInfo={modo:'sincronizado',atualizadoEm:escolhido._updated_at?fmtGalDataHora(escolhido._updated_at):'',detalhe:'Alterações sincronizadas com a base.'};
+      renderGalinheiroSyncStatus();
+      return escolhido;
+    }
+    if(galTemConteudo(remoto) || String(remoto._updated_at||'') >= String(local._updated_at||'')){
+      escolhido=remoto;
+      salvarGalinheiroLocal(escolhido);
+      galinheiroSyncInfo={modo:'sincronizado',atualizadoEm:escolhido._updated_at?fmtGalDataHora(escolhido._updated_at):'',detalhe:'Dados atualizados a partir da base compartilhada.'};
+      renderGalinheiroSyncStatus();
+      return escolhido;
+    }
+    if(galTemConteudo(local)){
+      escolhido=local;
+      await sb.from('configuracoes').upsert({chave:CHAVE_GALINHEIRO_COMPARTILHADO, valor:JSON.stringify(escolhido)});
+      salvarGalinheiroLocal(escolhido);
+      galinheiroSyncInfo={modo:'sincronizado',atualizadoEm:escolhido._updated_at?fmtGalDataHora(escolhido._updated_at):'',detalhe:'Dados locais enviados para a base compartilhada.'};
+      renderGalinheiroSyncStatus();
+      return escolhido;
+    }
+    salvarGalinheiroLocal(escolhido);
+    galinheiroSyncInfo={modo:'sincronizado',atualizadoEm:escolhido._updated_at?fmtGalDataHora(escolhido._updated_at):'',detalhe:'Base compartilhada pronta para receber os lançamentos.'};
+    renderGalinheiroSyncStatus();
+    return escolhido;
+  }catch(e){
+    if(String(e?.message||e||'').includes('401') || /unauthorized/i.test(String(e?.message||e||''))){
+      syncGalinheiroRemotaBloqueada=true;
+      galinheiroSyncInfo={modo:'bloqueado',atualizadoEm:local._updated_at?fmtGalDataHora(local._updated_at):'',detalhe:'Sem permissão para a base remota. As alterações ficam somente no aparelho atual.'};
+    }else{
+      galinheiroSyncInfo={modo:'erro',atualizadoEm:local._updated_at?fmtGalDataHora(local._updated_at):'',detalhe:'Não foi possível sincronizar agora. O conteúdo continua salvo localmente.'};
+    }
+    renderGalinheiroSyncStatus();
+    return local;
+  }
+}
+function setGalinheiroState(st){
+  const payload=normalizarEstadoGalinheiro(st);
+  payload._updated_at=new Date().toISOString();
+  salvarGalinheiroLocal(payload);
+  galinheiroSyncInfo={modo:'local',atualizadoEm:fmtGalDataHora(payload._updated_at),detalhe:'Alteração salva neste aparelho. Sincronizando com a base...'};
+  renderGalinheiroSyncStatus();
+  sincronizarGalinheiroCompartilhado(true).catch(()=>{});
+}
+function galAutor(){
+  return perfilAtual?.label||perfilAtual?.nome||'Irmão Daniel';
+}
+function galDiasEntre(a,b){
+  const d0=new Date(`${a}T00:00:00`);
+  const d1=new Date(`${b}T00:00:00`);
+  return Math.round((d1-d0)/86400000);
+}
+function galAddDays(iso,days){
+  const d=new Date(`${iso}T12:00:00`);
+  d.setDate(d.getDate()+days);
+  return d.toISOString().slice(0,10);
+}
+function taxaPosturaGalinheiro(total,aves){
+  return aves>0?moneyNumber((moneyNumber(total)/aves)*100):0;
+}
+function statusTaxaGalinheiro(taxa){
+  if(taxa>=80)return {txt:'Excelente',cor:'#2D5A30'};
+  if(taxa>=65)return {txt:'Normal',cor:'#4A7C4E'};
+  if(taxa>=50)return {txt:'Atenção',cor:'#F39C12'};
+  return {txt:'Crítico',cor:'#C0392B'};
+}
+function estoqueRacaoAtualKg(st=getGalinheiroState()){
+  const entradas=(st.racao||[]).reduce((a,r)=>a+moneyNumber(r.quantidade_kg),0);
+  const consumoDiario=(st.config.aves*st.config.consumo_g_ave)/1000;
+  const diasComOvos=new Set((st.ovos||[]).map(o=>o.data_iso));
+  return Math.max(0, moneyNumber(entradas - (diasComOvos.size*consumoDiario)));
+}
+function ultimoRegistroTipo(lista=[],tipo=''){
+  return [...(lista||[])].filter(i=>!tipo || i.tipo===tipo).sort((a,b)=>String(b.data_iso).localeCompare(String(a.data_iso)))[0]||null;
+}
+function statusLimpezaGalinheiro(st=getGalinheiroState(),tipo='galinheiro'){
+  const cfg=st.config;
+  const dias=tipo==='desinfeccao'?cfg.desinfeccao_dias:(tipo==='ninhos'?cfg.limpeza_ninhos_dias:cfg.limpeza_galinheiro_dias);
+  const ult=ultimoRegistroTipo(st.limpezas,tipo);
+  if(!ult)return {txt:'PENDENTE',cls:'pr-r',cor:'#C0392B',prox:'',diasRest:-999};
+  const prox=galAddDays(ult.data_iso,dias);
+  const rest=galDiasEntre(hojeISO(),prox);
+  if(rest<0)return {txt:'PENDENTE',cls:'pr-r',cor:'#C0392B',prox,diasRest:rest};
+  if(rest<=cfg.alerta_limpeza_dias)return {txt:'Alerta',cls:'pr-p',cor:'#F39C12',prox,diasRest:rest};
+  return {txt:'OK',cls:'pr-v',cor:'#2D5A30',prox,diasRest:rest};
+}
+function alertasGalinheiro(st=getGalinheiroState()){
+  const alerts=[];
+  const hoje=hojeISO();
+  if(!(st.ovos||[]).some(o=>o.data_iso===hoje))alerts.push('Você ainda não registrou os ovos de hoje.');
+  const estoque=estoqueRacaoAtualKg(st);
+  const consumoDia=(st.config.aves*st.config.consumo_g_ave)/1000;
+  if(consumoDia>0 && estoque/consumoDia<=st.config.estoque_minimo_dias)alerts.push(`Estoque de ração para ${Math.floor(estoque/consumoDia)} dia(s).`);
+  ['galinheiro','ninhos','desinfeccao'].forEach(t=>{
+    const s=statusLimpezaGalinheiro(st,t);
+    if(s.txt==='PENDENTE')alerts.push(`${labelLimpezaGalinheiro(t)} pendente.`);
+    else if(s.txt==='Alerta')alerts.push(`${labelLimpezaGalinheiro(t)} se aproxima.`);
+  });
+  (st.saude||[]).forEach(s=>{
+    if(s.proxima_iso){
+      const rest=galDiasEntre(hoje,s.proxima_iso);
+      if(rest<0)alerts.push(`${s.tipo} ${s.produto||''} pendente.`);
+      else if(rest<=st.config.alerta_saude_dias)alerts.push(`${s.tipo} ${s.produto||''} em ${rest} dia(s).`);
+    }
+  });
+  return alerts;
+}
+function labelLimpezaGalinheiro(tipo=''){
+  return tipo==='ninhos'?'Limpeza dos ninhos':tipo==='desinfeccao'?'Desinfecção mensal':'Limpeza do galinheiro';
+}
+function galFmt(n,dec=0){
+  return moneyNumber(n).toLocaleString('pt-BR',{minimumFractionDigits:dec,maximumFractionDigits:dec});
+}
+function atualizarPreviewOvosGalinheiro(){
+  const st=getGalinheiroState();
+  const total=parseInt(document.getElementById('gal-ovos-total')?.value||0)||0;
+  const consumo=parseInt(document.getElementById('gal-ovos-consumo')?.value||0)||0;
+  const venda=parseInt(document.getElementById('gal-ovos-venda')?.value||0)||0;
+  const taxa=taxaPosturaGalinheiro(total,st.config.aves);
+  const status=statusTaxaGalinheiro(taxa);
+  const prev=document.getElementById('gal-ovos-preview');
+  if(prev){
+    prev.innerHTML=`Taxa de postura: <strong style="color:${status.cor}">${galFmt(taxa,1)}%</strong> · ${status.txt}${(consumo+venda)>total?' · <span style="color:#C0392B">Destinos maiores que o total coletado</span>':''}`;
+  }
+}
+function popularDefaultsGalinheiro(){
+  ['gal-ovos-data','gal-racao-data','gal-limpeza-data','gal-saude-data'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el && !el.value)el.value=hojeISO();
+  });
+  const resp=document.getElementById('gal-limpeza-resp');
+  if(resp && !resp.value && perfilAtual)resp.value=galAutor();
+}
+async function carregarGalinheiro(){
+  await sincronizarGalinheiroCompartilhado(false);
+  popularDefaultsGalinheiro();
+  renderGalinheiroPainel();
+  renderGalinheiroOvos();
+  renderGalinheiroRacao();
+  renderGalinheiroLimpeza();
+  renderGalinheiroSaude();
+  renderGalinheiroRelatorios();
+  renderGalinheiroConfig();
+}
+function renderGalinheiroPainel(){
+  const box=document.getElementById('galinheiro-painel-wrap'); if(!box)return;
+  const st=getGalinheiroState();
+  const hoje=hojeISO();
+  const regHoje=(st.ovos||[]).find(o=>o.data_iso===hoje);
+  const taxa=taxaPosturaGalinheiro(regHoje?.total||0,st.config.aves);
+  const stTaxa=statusTaxaGalinheiro(taxa);
+  const estoque=estoqueRacaoAtualKg(st);
+  const consumoDia=(st.config.aves*st.config.consumo_g_ave)/1000;
+  const diasRacao=consumoDia>0?Math.floor(estoque/consumoDia):0;
+  const limp=statusLimpezaGalinheiro(st,'galinheiro');
+  const alerts=alertasGalinheiro(st);
+  box.innerHTML=`<div class="card" style="margin-bottom:12px;background:linear-gradient(135deg,#fff8e8,#f6dfb1);border:1px solid #e7c983;overflow:hidden">
+    <div style="display:flex;gap:14px;align-items:center">
+      <div style="width:92px;height:92px;border-radius:24px;background:linear-gradient(135deg,#8b4a18,#d49b45);display:flex;align-items:center;justify-content:center;font-size:3rem;box-shadow:0 10px 24px rgba(98,58,12,.2)">🐔</div>
+      <div style="flex:1">
+        <div style="font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--cinza);font-weight:800">Plantel</div>
+        <h3 style="font-size:1.45rem;margin:2px 0;color:var(--marrom)">${escapeHtml(st.config.raca)}</h3>
+        <div style="font-size:.86rem;color:var(--cinza)"><strong>${st.config.aves}</strong> aves · consumo estimado ${galFmt(consumoDia,1)} kg/dia</div>
+      </div>
+    </div>
+  </div>
+  ${alerts.length?`<div class="card" style="margin-bottom:12px;border-left:5px solid #C0392B"><h3>🔔 Alertas</h3>${alerts.map(a=>`<div style="padding:7px 0;border-top:1px solid #f0dfc2;color:#8a2a20">${escapeHtml(a)}</div>`).join('')}</div>`:''}
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px">
+    <div class="card" style="margin:0"><strong>Ovos hoje</strong><div style="font-size:1.55rem;font-weight:900;color:var(--ouro)">${regHoje?.total||0}</div></div>
+    <div class="card" style="margin:0"><strong>Taxa de postura</strong><div style="font-size:1.55rem;font-weight:900;color:${stTaxa.cor}">${galFmt(taxa,1)}%</div><div style="height:8px;background:#eadfca;border-radius:999px;overflow:hidden;margin-top:7px"><span style="display:block;height:100%;width:${Math.min(100,taxa)}%;background:${stTaxa.cor}"></span></div></div>
+    <div class="card" style="margin:0"><strong>Limpeza</strong><div style="font-size:1.2rem;font-weight:900;color:${limp.cor}">${limp.txt}</div><div style="font-size:.75rem;color:var(--cinza)">${limp.prox?`Próx.: ${fmtData(limp.prox)}`:'Sem registro'}</div></div>
+    <div class="card" style="margin:0"><strong>Ração atual</strong><div style="font-size:1.55rem;font-weight:900;color:var(--ouro)">${galFmt(estoque,1)} kg</div><div style="font-size:.75rem;color:var(--cinza)">${diasRacao} dia(s) estimados</div></div>
+  </div>
+  <div class="card"><h3>⚡ Acesso rápido</h3><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">
+    <button class="btn btn-ouro" onclick="stab('galinheiro','ovos',document.querySelector('#screen-galinheiro .tab-btn:nth-child(2)'));renderGalinheiroOvos()">🥚 Registrar ovos</button>
+    <button class="btn btn-cinza" onclick="stab('galinheiro','relatorios',document.querySelector('#screen-galinheiro .tab-btn:nth-child(6)'));renderGalinheiroRelatorios()">📊 Ver relatório</button>
+    <button class="btn btn-cinza" onclick="stab('galinheiro','limpeza',document.querySelector('#screen-galinheiro .tab-btn:nth-child(4)'));renderGalinheiroLimpeza()">🧹 Registrar limpeza</button>
+    <button class="btn btn-cinza" onclick="stab('galinheiro','saude',document.querySelector('#screen-galinheiro .tab-btn:nth-child(5)'));renderGalinheiroSaude()">💉 Saúde das aves</button>
+  </div></div>`;
+}
+function salvarOvosGalinheiro(){
+  const st=getGalinheiroState();
+  const data=document.getElementById('gal-ovos-data')?.value||hojeISO();
+  const total=parseInt(document.getElementById('gal-ovos-total')?.value||0)||0;
+  const consumo=parseInt(document.getElementById('gal-ovos-consumo')?.value||0)||0;
+  const venda=parseInt(document.getElementById('gal-ovos-venda')?.value||0)||0;
+  const obs=document.getElementById('gal-ovos-obs')?.value||'';
+  if(total<=0){showToast('Informe a quantidade de ovos coletados.');return;}
+  if(consumo+venda>total){showToast('Consumo + venda não pode passar do total coletado.');return;}
+  const taxa=taxaPosturaGalinheiro(total,st.config.aves);
+  const idx=st.ovos.findIndex(o=>o.data_iso===data);
+  const item={id:idx>=0?st.ovos[idx].id:galUid('ovo'),data_iso:data,total,consumo,venda,taxa,obs,autor:galAutor(),timestamp:new Date().toISOString()};
+  if(idx>=0)st.ovos[idx]=item; else st.ovos.unshift(item);
+  setGalinheiroState(st);
+  renderGalinheiroPainel(); renderGalinheiroOvos(); renderGalinheiroRelatorios();
+  showToast(idx>=0?'Registro de ovos atualizado.':'Ovos do dia registrados.');
+}
+function renderGalinheiroOvos(){
+  popularDefaultsGalinheiro(); atualizarPreviewOvosGalinheiro();
+  const box=document.getElementById('galinheiro-ovos-hist'); if(!box)return;
+  const st=getGalinheiroState();
+  const rows=[...(st.ovos||[])].sort((a,b)=>String(b.data_iso).localeCompare(String(a.data_iso)));
+  box.innerHTML=`<div class="card"><h3>📋 Histórico de ovos</h3>${rows.length?rows.map(o=>{const s=statusTaxaGalinheiro(o.taxa);return `<div style="padding:10px 0;border-top:1px solid #f0dfc2"><div style="display:flex;justify-content:space-between;gap:10px"><strong>${fmtData(o.data_iso)}</strong><span style="font-weight:900;color:${s.cor}">${galFmt(o.taxa,1)}%</span></div><div style="font-size:.82rem;color:var(--cinza)">${o.total} coletados · ${o.consumo} consumo · ${o.venda} venda · ${escapeHtml(o.autor||'')}</div>${o.obs?`<div style="font-size:.78rem;color:var(--cinza);margin-top:4px">${escapeHtml(o.obs)}</div>`:''}</div>`}).join(''):'<div class="empty">Nenhum registro de ovos ainda.</div>'}</div>`;
+}
+function salvarEntradaRacaoGalinheiro(){
+  const st=getGalinheiroState();
+  const data=document.getElementById('gal-racao-data')?.value||hojeISO();
+  const qtd=moneyNumber(document.getElementById('gal-racao-qtd')?.value||0);
+  const fornecedor=document.getElementById('gal-racao-forn')?.value||'';
+  if(qtd<=0){showToast('Informe a quantidade de ração.');return;}
+  st.racao.unshift({id:galUid('rac'),data_iso:data,quantidade_kg:qtd,fornecedor,autor:galAutor(),timestamp:new Date().toISOString()});
+  setGalinheiroState(st);
+  const q=document.getElementById('gal-racao-qtd'); if(q)q.value='';
+  const f=document.getElementById('gal-racao-forn'); if(f)f.value='';
+  renderGalinheiroPainel(); renderGalinheiroRacao(); renderGalinheiroRelatorios();
+  showToast('Entrada de ração registrada.');
+}
+function renderGalinheiroRacao(){
+  popularDefaultsGalinheiro();
+  const box=document.getElementById('galinheiro-racao-wrap'); if(!box)return;
+  const st=getGalinheiroState();
+  const estoque=estoqueRacaoAtualKg(st);
+  const consumoDia=(st.config.aves*st.config.consumo_g_ave)/1000;
+  const dias=consumoDia>0?Math.floor(estoque/consumoDia):0;
+  const rows=[...(st.racao||[])].sort((a,b)=>String(b.data_iso).localeCompare(String(a.data_iso)));
+  box.innerHTML=`<div class="card" style="margin-bottom:12px"><h3>📦 Estoque de ração</h3><div style="font-size:1.8rem;font-weight:900;color:var(--ouro)">${galFmt(estoque,1)} kg</div><div style="font-size:.82rem;color:var(--cinza)">Consumo estimado: ${galFmt(consumoDia,1)} kg/dia · autonomia: ${dias} dia(s)</div></div>
+  <div class="card"><h3>📋 Entradas de ração</h3>${rows.length?rows.map(r=>`<div style="padding:9px 0;border-top:1px solid #f0dfc2"><strong>${fmtData(r.data_iso)}</strong> · ${galFmt(r.quantidade_kg,1)} kg<div style="font-size:.78rem;color:var(--cinza)">${escapeHtml(r.fornecedor||'Sem fornecedor')} · ${escapeHtml(r.autor||'')}</div></div>`).join(''):'<div class="empty">Nenhuma entrada registrada.</div>'}</div>`;
+}
+function salvarLimpezaGalinheiro(){
+  const st=getGalinheiroState();
+  const data=document.getElementById('gal-limpeza-data')?.value||hojeISO();
+  const tipo=document.getElementById('gal-limpeza-tipo')?.value||'galinheiro';
+  const responsavel=document.getElementById('gal-limpeza-resp')?.value||galAutor();
+  const obs=document.getElementById('gal-limpeza-obs')?.value||'';
+  st.limpezas.unshift({id:galUid('lim'),data_iso:data,tipo,responsavel,obs,autor:galAutor(),timestamp:new Date().toISOString()});
+  setGalinheiroState(st);
+  const obsEl=document.getElementById('gal-limpeza-obs'); if(obsEl)obsEl.value='';
+  renderGalinheiroPainel(); renderGalinheiroLimpeza(); renderGalinheiroRelatorios();
+  showToast('Limpeza registrada.');
+}
+function renderGalinheiroLimpeza(){
+  popularDefaultsGalinheiro();
+  const box=document.getElementById('galinheiro-limpeza-wrap'); if(!box)return;
+  const st=getGalinheiroState();
+  const cards=['galinheiro','ninhos','desinfeccao'].map(tipo=>{
+    const s=statusLimpezaGalinheiro(st,tipo);
+    return `<div class="card" style="margin:0"><strong>${escapeHtml(labelLimpezaGalinheiro(tipo))}</strong><div style="font-size:1.2rem;font-weight:900;color:${s.cor}">${s.txt}</div><div style="font-size:.75rem;color:var(--cinza)">${s.prox?`Próxima: ${fmtData(s.prox)}`:'Sem registro'}</div></div>`;
+  }).join('');
+  const rows=[...(st.limpezas||[])].sort((a,b)=>String(b.data_iso).localeCompare(String(a.data_iso)));
+  box.innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px">${cards}</div><div class="card"><h3>📋 Histórico de limpezas</h3>${rows.length?rows.map(l=>`<div style="padding:9px 0;border-top:1px solid #f0dfc2"><strong>${fmtData(l.data_iso)}</strong> · ${escapeHtml(labelLimpezaGalinheiro(l.tipo))}<div style="font-size:.78rem;color:var(--cinza)">${escapeHtml(l.responsavel||l.autor||'')} ${l.obs?'· '+escapeHtml(l.obs):''}</div></div>`).join(''):'<div class="empty">Nenhuma limpeza registrada.</div>'}</div>`;
+}
+function salvarSaudeGalinheiro(){
+  const st=getGalinheiroState();
+  const tipo=document.getElementById('gal-saude-tipo')?.value||'Vacina';
+  const produto=document.getElementById('gal-saude-prod')?.value||'';
+  const data=document.getElementById('gal-saude-data')?.value||hojeISO();
+  const proxima=document.getElementById('gal-saude-prox')?.value||'';
+  const aves=parseInt(document.getElementById('gal-saude-aves')?.value||0)||0;
+  const obs=document.getElementById('gal-saude-obs')?.value||'';
+  if(!produto){showToast('Informe o produto/procedimento.');return;}
+  st.saude.unshift({id:galUid('sau'),tipo,produto,data_iso:data,proxima_iso:proxima,aves,obs,autor:galAutor(),timestamp:new Date().toISOString()});
+  setGalinheiroState(st);
+  ['gal-saude-prod','gal-saude-prox','gal-saude-aves','gal-saude-obs'].forEach(id=>{const el=document.getElementById(id); if(el)el.value='';});
+  renderGalinheiroPainel(); renderGalinheiroSaude(); renderGalinheiroRelatorios();
+  showToast('Procedimento registrado.');
+}
+function renderGalinheiroSaude(){
+  popularDefaultsGalinheiro();
+  const box=document.getElementById('galinheiro-saude-wrap'); if(!box)return;
+  const st=getGalinheiroState();
+  const rows=[...(st.saude||[])].sort((a,b)=>String(b.data_iso).localeCompare(String(a.data_iso)));
+  box.innerHTML=`<div class="card"><h3>📋 Histórico sanitário</h3>${rows.length?rows.map(s=>{const rest=s.proxima_iso?galDiasEntre(hojeISO(),s.proxima_iso):null;const pend=rest!==null&&rest<0;const alerta=rest!==null&&rest<=st.config.alerta_saude_dias;return `<div style="padding:10px 0;border-top:1px solid #f0dfc2"><div style="display:flex;justify-content:space-between;gap:10px"><strong>${escapeHtml(s.tipo)} · ${escapeHtml(s.produto)}</strong>${s.proxima_iso?`<span class="pill ${pend?'pr-r':alerta?'pr-p':'pr-v'}">${pend?'Pendente':alerta?'Alerta':'OK'}</span>`:''}</div><div style="font-size:.78rem;color:var(--cinza)">${fmtData(s.data_iso)} · ${s.aves||st.config.aves} aves${s.proxima_iso?' · próxima: '+fmtData(s.proxima_iso):''}</div>${s.obs?`<div style="font-size:.78rem;color:var(--cinza);margin-top:4px">${escapeHtml(s.obs)}</div>`:''}</div>`}).join(''):'<div class="empty">Nenhum procedimento registrado.</div>'}</div>`;
+}
+function agruparMesGalinheiro(lista=[],campo='total'){
+  const mapa={};
+  (lista||[]).forEach(i=>{
+    const mes=String(i.data_iso||'').slice(0,7);
+    if(!mes)return;
+    mapa[mes]=(mapa[mes]||0)+moneyNumber(i[campo]||0);
+  });
+  return mapa;
+}
+function renderGalinheiroRelatorios(){
+  const box=document.getElementById('galinheiro-relatorios-wrap'); if(!box)return;
+  const st=getGalinheiroState();
+  const ovos=st.ovos||[];
+  const total=ovos.reduce((a,o)=>a+o.total,0);
+  const consumo=ovos.reduce((a,o)=>a+o.consumo,0);
+  const venda=ovos.reduce((a,o)=>a+o.venda,0);
+  const taxaMedia=ovos.length?moneyNumber(ovos.reduce((a,o)=>a+o.taxa,0)/ovos.length):0;
+  const valorUn=st.config.valor_duzia?st.config.valor_duzia/12:0;
+  const receita=venda*valorUn;
+  const porMes=agruparMesGalinheiro(ovos,'venda');
+  const linhasMes=Object.keys(porMes).sort().reverse().map(m=>`<div style="padding:8px 0;border-top:1px solid #f0dfc2;display:flex;justify-content:space-between"><span>${m.slice(5,7)}/${m.slice(0,4)}</span><strong>${porMes[m]} ovos vendidos · ${fmt(porMes[m]*valorUn)}</strong></div>`).join('');
+  box.innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px"><div class="card" style="margin:0"><strong>Total coletado</strong><div style="font-size:1.45rem;font-weight:900;color:var(--ouro)">${total}</div></div><div class="card" style="margin:0"><strong>Consumo interno</strong><div style="font-size:1.45rem;font-weight:900;color:var(--marrom)">${consumo}</div></div><div class="card" style="margin:0"><strong>Ovos vendidos</strong><div style="font-size:1.45rem;font-weight:900;color:var(--marrom)">${venda}</div></div><div class="card" style="margin:0"><strong>Taxa média</strong><div style="font-size:1.45rem;font-weight:900;color:${statusTaxaGalinheiro(taxaMedia).cor}">${galFmt(taxaMedia,1)}%</div></div></div>
+  <div class="card" style="margin-bottom:12px"><h3>💰 Financeiro</h3><div style="font-size:1.55rem;font-weight:900;color:#1f8a4c">${fmt(receita)}</div><div style="font-size:.8rem;color:var(--cinza)">Baseado em ${venda} ovos vendidos e valor da dúzia configurado em ${fmt(st.config.valor_duzia)}.</div></div>
+  <div class="card"><h3>📅 Vendas por mês</h3>${linhasMes||'<div class="empty">Sem vendas registradas ainda.</div>'}</div>`;
+}
+function renderGalinheiroConfig(){
+  const box=document.getElementById('galinheiro-config-wrap'); if(!box)return;
+  if(perfilAtual?.tipo!=='admin'){box.innerHTML='<div class="card"><div class="empty">Configurações disponíveis apenas para os freis.</div></div>';return;}
+  const c=getGalinheiroState().config;
+  box.innerHTML=`<div class="card"><h3>⚙️ Configurações do Galinheiro</h3>
+    <div class="frow"><div><label class="fl first">Raça</label><input id="gal-cfg-raca" class="fi" value="${escapeHtml(c.raca)}"></div><div><label class="fl">Número de aves</label><input id="gal-cfg-aves" class="fi" type="number" min="1" step="1" value="${c.aves}"></div></div>
+    <div class="frow"><div><label class="fl">Consumo por ave/dia (g)</label><input id="gal-cfg-consumo" class="fi" type="number" min="1" step="1" value="${c.consumo_g_ave}"></div><div><label class="fl">Estoque mínimo de ração (dias)</label><input id="gal-cfg-min-racao" class="fi" type="number" min="1" step="1" value="${c.estoque_minimo_dias}"></div></div>
+    <div class="frow"><div><label class="fl">Limpeza galinheiro (dias)</label><input id="gal-cfg-limp-gal" class="fi" type="number" min="1" step="1" value="${c.limpeza_galinheiro_dias}"></div><div><label class="fl">Limpeza ninhos (dias)</label><input id="gal-cfg-limp-ninhos" class="fi" type="number" min="1" step="1" value="${c.limpeza_ninhos_dias}"></div></div>
+    <div class="frow"><div><label class="fl">Desinfecção mensal (dias)</label><input id="gal-cfg-desinf" class="fi" type="number" min="1" step="1" value="${c.desinfeccao_dias}"></div><div><label class="fl">Alerta limpeza (dias antes)</label><input id="gal-cfg-alerta-limp" class="fi" type="number" min="0" step="1" value="${c.alerta_limpeza_dias}"></div></div>
+    <div class="frow"><div><label class="fl">Valor da dúzia</label><input id="gal-cfg-duzia" class="fi" type="number" min="0" step="0.01" value="${c.valor_duzia}"></div><div><label class="fl">Alerta saúde (dias antes)</label><input id="gal-cfg-alerta-saude" class="fi" type="number" min="0" step="1" value="${c.alerta_saude_dias}"></div></div>
+    <button class="btn btn-ouro" onclick="salvarConfigGalinheiro()">💾 Salvar configurações</button>
+  </div>`;
+}
+function salvarConfigGalinheiro(){
+  if(perfilAtual?.tipo!=='admin'){showToast('Apenas freis podem alterar configurações.');return;}
+  const st=getGalinheiroState();
+  st.config={
+    ...st.config,
+    raca:document.getElementById('gal-cfg-raca')?.value||'Isa Brown',
+    aves:parseInt(document.getElementById('gal-cfg-aves')?.value||150)||150,
+    consumo_g_ave:moneyNumber(document.getElementById('gal-cfg-consumo')?.value||120)||120,
+    estoque_minimo_dias:parseInt(document.getElementById('gal-cfg-min-racao')?.value||7)||7,
+    limpeza_galinheiro_dias:parseInt(document.getElementById('gal-cfg-limp-gal')?.value||7)||7,
+    limpeza_ninhos_dias:parseInt(document.getElementById('gal-cfg-limp-ninhos')?.value||7)||7,
+    desinfeccao_dias:parseInt(document.getElementById('gal-cfg-desinf')?.value||30)||30,
+    alerta_limpeza_dias:parseInt(document.getElementById('gal-cfg-alerta-limp')?.value||2)||2,
+    valor_duzia:moneyNumber(document.getElementById('gal-cfg-duzia')?.value||0),
+    alerta_saude_dias:parseInt(document.getElementById('gal-cfg-alerta-saude')?.value||5)||5
+  };
+  setGalinheiroState(st);
+  renderGalinheiroPainel(); renderGalinheiroRacao(); renderGalinheiroRelatorios(); renderGalinheiroConfig();
+  showToast('Configurações do Galinheiro salvas.');
 }
 
 // === BOOTSTRAP === inicializa o app
