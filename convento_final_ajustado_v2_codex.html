@@ -807,6 +807,79 @@ header p{font-size:.62rem;color:rgba(201,151,58,.65);margin-top:1px;}
 .tabs::-webkit-scrollbar{display:none;}
 .tab-btn{flex:1;min-width:52px;padding:9px 4px;background:none;border:none;color:rgba(201,151,58,.5);font-family:'Source Sans 3',sans-serif;font-size:.62rem;font-weight:600;cursor:pointer;text-transform:uppercase;letter-spacing:.03em;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s;white-space:nowrap;}
 .tab-btn.active{color:var(--ouro);border-bottom-color:var(--ouro);}
+#screen-galinheiro .tabs{
+  display:flex;
+  flex-wrap:nowrap;
+  gap:8px;
+  padding:8px;
+  overflow-x:auto;
+  overflow-y:hidden;
+  scrollbar-width:none;
+}
+#screen-galinheiro .tabs::-webkit-scrollbar{display:none}
+#screen-galinheiro .tabs .tab-btn{
+  flex:0 0 auto;
+  min-width:max-content;
+  margin-bottom:0;
+  border-bottom:none;
+  border-radius:999px;
+  padding:10px 12px;
+  white-space:nowrap;
+  line-height:1.15;
+  font-size:.72rem;
+  letter-spacing:0;
+  background:rgba(255,255,255,.04);
+}
+#screen-galinheiro .tabs .tab-btn.active{
+  background:rgba(201,151,58,.2);
+  color:var(--ouro);
+}
+.gal-bottom-nav{
+  display:none;
+  position:fixed;
+  left:50%;
+  bottom:0;
+  transform:translateX(-50%);
+  width:100%;
+  max-width:480px;
+  z-index:210;
+  padding:8px 10px calc(8px + env(safe-area-inset-bottom));
+  background:rgba(255,255,255,.96);
+  border-top:1px solid #eadfca;
+  box-shadow:0 -10px 28px rgba(44,24,0,.14);
+}
+.gal-bottom-nav .gal-nav-btn{
+  flex:1;
+  border:0;
+  background:none;
+  color:var(--cinza);
+  font-family:'Source Sans 3',sans-serif;
+  font-size:.59rem;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.02em;
+  padding:6px 2px;
+  border-radius:14px;
+}
+.gal-bottom-nav .gal-nav-btn span{
+  display:block;
+  font-size:1.15rem;
+  line-height:1;
+  margin-bottom:3px;
+}
+.gal-bottom-nav .gal-nav-btn.active{
+  color:var(--marrom);
+  background:var(--ouro-pale);
+  box-shadow:inset 0 0 0 1px #eadfca;
+}
+@media (max-width: 640px){
+  #screen-galinheiro.active{padding-bottom:108px;}
+  #screen-galinheiro.active > .tabs{display:none;}
+  #screen-galinheiro.active .gal-bottom-nav{display:flex;}
+}
+@media (min-width: 900px){
+  .gal-bottom-nav{max-width:1180px;}
+}
 #screen-arraia .tabs{
   display:flex;
   flex-wrap:nowrap;
@@ -2328,13 +2401,22 @@ mark{background:#fff59d;border-radius:2px;}
 <!-- ══════ GALINHEIRO ══════ -->
 <div id="screen-galinheiro" class="screen">
   <div class="tabs">
-    <button class="tab-btn active" onclick="stab('galinheiro','painel',this);carregarGalinheiro()">🐔 Painel</button>
-    <button class="tab-btn" onclick="stab('galinheiro','ovos',this);renderGalinheiroOvos()">🥚 Ovos</button>
-    <button class="tab-btn" onclick="stab('galinheiro','racao',this);renderGalinheiroRacao()">🌾 Ração</button>
-    <button class="tab-btn" onclick="stab('galinheiro','limpeza',this);renderGalinheiroLimpeza()">🧹 Limpeza</button>
-    <button class="tab-btn" onclick="stab('galinheiro','saude',this);renderGalinheiroSaude()">💉 Saúde</button>
-    <button class="tab-btn" onclick="stab('galinheiro','relatorios',this);renderGalinheiroRelatorios()">📊 Relatórios</button>
-    <button class="tab-btn admin-only" onclick="stab('galinheiro','config',this);renderGalinheiroConfig()">⚙️ Config.</button>
+    <button class="tab-btn active" data-gal-tab="painel" onclick="abrirAbaGalinheiro('painel',this)">🐔 Painel</button>
+    <button class="tab-btn" data-gal-tab="ovos" onclick="abrirAbaGalinheiro('ovos',this)">🥚 Ovos</button>
+    <button class="tab-btn" data-gal-tab="racao" onclick="abrirAbaGalinheiro('racao',this)">🌾 Ração</button>
+    <button class="tab-btn" data-gal-tab="limpeza" onclick="abrirAbaGalinheiro('limpeza',this)">🧹 Limpeza</button>
+    <button class="tab-btn" data-gal-tab="saude" onclick="abrirAbaGalinheiro('saude',this)">💉 Saúde</button>
+    <button class="tab-btn" data-gal-tab="relatorios" onclick="abrirAbaGalinheiro('relatorios',this)">📊 Relatórios</button>
+    <button class="tab-btn gal-admin-tab" data-gal-tab="config" onclick="abrirAbaGalinheiro('config',this)" style="display:none">⚙️ Config.</button>
+  </div>
+  <div class="gal-bottom-nav">
+    <button class="gal-nav-btn active" data-gal-tab="painel" onclick="abrirAbaGalinheiro('painel',this)"><span>🐔</span>Painel</button>
+    <button class="gal-nav-btn" data-gal-tab="ovos" onclick="abrirAbaGalinheiro('ovos',this)"><span>🥚</span>Ovos</button>
+    <button class="gal-nav-btn" data-gal-tab="racao" onclick="abrirAbaGalinheiro('racao',this)"><span>🌾</span>Ração</button>
+    <button class="gal-nav-btn" data-gal-tab="limpeza" onclick="abrirAbaGalinheiro('limpeza',this)"><span>🧹</span>Limpeza</button>
+    <button class="gal-nav-btn" data-gal-tab="saude" onclick="abrirAbaGalinheiro('saude',this)"><span>💉</span>Saúde</button>
+    <button class="gal-nav-btn" data-gal-tab="relatorios" onclick="abrirAbaGalinheiro('relatorios',this)"><span>📊</span>Relat.</button>
+    <button class="gal-nav-btn gal-admin-tab" data-gal-tab="config" onclick="abrirAbaGalinheiro('config',this)" style="display:none"><span>⚙️</span>Config.</button>
   </div>
   <div id="galinheiro-sync-status" style="margin:10px 0 2px;padding:10px 12px;border:1px solid #efe4cf;border-radius:14px;background:#fffaf2;font-size:.78rem;color:var(--cinza)">Atualizado em: —</div>
   <div id="sub-galinheiro-painel" class="screen active" style="padding:12px 0 0">
@@ -16908,9 +16990,40 @@ function popularDefaultsGalinheiro(){
   const resp=document.getElementById('gal-limpeza-resp');
   if(resp && !resp.value && perfilAtual)resp.value=galAutor();
 }
+function atualizarMenuGalinheiro(sub='painel'){
+  const isAdmin=perfilAtual?.tipo==='admin';
+  document.querySelectorAll('#screen-galinheiro .gal-admin-tab').forEach(el=>{
+    el.style.display=isAdmin?'':'none';
+  });
+  if(sub==='config' && !isAdmin)sub='painel';
+  document.querySelectorAll('#screen-galinheiro [data-gal-tab]').forEach(el=>{
+    el.classList.toggle('active', el.dataset.galTab===sub);
+  });
+  return sub;
+}
+function abrirAbaGalinheiro(sub='painel', btn=null){
+  sub=atualizarMenuGalinheiro(sub);
+  const tabBtn=btn?.classList?.contains('tab-btn') ? btn : document.querySelector(`#screen-galinheiro .tabs [data-gal-tab="${sub}"]`);
+  stab('galinheiro',sub,tabBtn);
+  atualizarMenuGalinheiro(sub);
+  if(sub==='painel')renderGalinheiroPainel();
+  if(sub==='ovos')renderGalinheiroOvos();
+  if(sub==='racao')renderGalinheiroRacao();
+  if(sub==='limpeza')renderGalinheiroLimpeza();
+  if(sub==='saude')renderGalinheiroSaude();
+  if(sub==='relatorios')renderGalinheiroRelatorios();
+  if(sub==='config')renderGalinheiroConfig();
+}
 async function carregarGalinheiro(){
   await sincronizarGalinheiroCompartilhado(false);
   popularDefaultsGalinheiro();
+  let subAtual=document.querySelector('#screen-galinheiro [id^="sub-galinheiro-"].active')?.id?.replace('sub-galinheiro-','')||'painel';
+  if(subAtual==='config' && perfilAtual?.tipo!=='admin'){
+    const painelBtn=document.querySelector('#screen-galinheiro .tabs [data-gal-tab="painel"]');
+    stab('galinheiro','painel',painelBtn);
+    subAtual='painel';
+  }
+  atualizarMenuGalinheiro(subAtual);
   renderGalinheiroPainel();
   renderGalinheiroOvos();
   renderGalinheiroRacao();
@@ -16949,10 +17062,10 @@ function renderGalinheiroPainel(){
     <div class="card" style="margin:0"><strong>Ração atual</strong><div style="font-size:1.55rem;font-weight:900;color:var(--ouro)">${galFmt(estoque,1)} kg</div><div style="font-size:.75rem;color:var(--cinza)">${diasRacao} dia(s) estimados</div></div>
   </div>
   <div class="card"><h3>⚡ Acesso rápido</h3><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">
-    <button class="btn btn-ouro" onclick="stab('galinheiro','ovos',document.querySelector('#screen-galinheiro .tab-btn:nth-child(2)'));renderGalinheiroOvos()">🥚 Registrar ovos</button>
-    <button class="btn btn-cinza" onclick="stab('galinheiro','relatorios',document.querySelector('#screen-galinheiro .tab-btn:nth-child(6)'));renderGalinheiroRelatorios()">📊 Ver relatório</button>
-    <button class="btn btn-cinza" onclick="stab('galinheiro','limpeza',document.querySelector('#screen-galinheiro .tab-btn:nth-child(4)'));renderGalinheiroLimpeza()">🧹 Registrar limpeza</button>
-    <button class="btn btn-cinza" onclick="stab('galinheiro','saude',document.querySelector('#screen-galinheiro .tab-btn:nth-child(5)'));renderGalinheiroSaude()">💉 Saúde das aves</button>
+    <button class="btn btn-ouro" onclick="abrirAbaGalinheiro('ovos')">🥚 Registrar ovos</button>
+    <button class="btn btn-cinza" onclick="abrirAbaGalinheiro('relatorios')">📊 Ver relatório</button>
+    <button class="btn btn-cinza" onclick="abrirAbaGalinheiro('limpeza')">🧹 Registrar limpeza</button>
+    <button class="btn btn-cinza" onclick="abrirAbaGalinheiro('saude')">💉 Saúde das aves</button>
   </div></div>`;
 }
 function salvarOvosGalinheiro(){
